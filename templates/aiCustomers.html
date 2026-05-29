@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+   <title>WineBuddy Customers</title>
+   <meta name="viewport" content="width=device-width, initial-scale=1">
+   <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.4.0/css/font-awesome.min.css" />
+   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css"
+      integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous" />
+   <script src="https://code.jquery.com/jquery-3.6.0.min.js"
+      integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
+   <link rel="icon" href="{{ url_for('static', filename='images/favicon.ico') }}" type="image/x-icon">
+   <style>
+      .input-group {
+         display: flex;
+         align-items: center;
+      }
+
+      .input-group input {
+         flex: 1;
+         padding: 10px;
+         border-radius: 5px;
+         border: 1px solid #ccc;
+      }
+
+      .input-group button {
+         margin-left: 10px;
+      }
+
+      #loaderOverlay {
+         position: fixed;
+         top: 0;
+         left: 0;
+         width: 100%;
+         height: 100%;
+         background-color: rgba(255, 255, 255, 0.8);
+         display: flex;
+         align-items: center;
+         justify-content: center;
+         z-index: 9999;
+      }
+
+      #loaderIcon {
+         text-align: center;
+      }
+
+      .d-flex {
+         text-align: left;
+      }
+
+      #loaderIcon img {
+         visibility: visible;
+      }
+
+      @media (max-width: 768px) {
+         html {
+            margin-top: 50px;
+         }
+
+         .form-control {
+            width: 100%;
+         }
+
+         .btn-lg {
+            width: 100%;
+         }
+      }
+
+      a {
+         color: white;
+         text-decoration: none;
+      }
+
+      .form-select {
+         width: 100%;
+         padding: 10px;
+         border-radius: 5px;
+         border: 1px solid #ccc;
+         margin-bottom: 10px;
+      }
+
+      .options-outer-container {
+         background-color: #28a745;
+         border-radius: 20px;
+         padding: 10px;
+         position: relative;
+         box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+      }
+
+      .options-scroll-container {
+         max-height: 150px;
+         overflow-y: hidden;
+         padding: 5px 15px;
+         scroll-behavior: smooth;
+      }
+
+      .custom-option {
+         padding: 10px 0;
+         border-bottom: 1px dashed rgba(255,255,255,0.3);
+      }
+
+      .custom-option:last-child {
+         border-bottom: none;
+      }
+
+      .option-text {
+         font-size: 1.1rem;
+         font-weight: 500;
+         text-align: left;
+      }
+
+      .scroll-arrow {
+         height: 30px;
+         display: flex;
+         align-items: center;
+         justify-content: center;
+         cursor: pointer;
+         color: white;
+         transition: opacity 0.3s;
+      }
+
+      .scroll-arrow:hover {
+         opacity: 0.7;
+      }
+
+      .form-check-input {
+         cursor: pointer;
+      }
+
+      @media (max-width: 768px) {
+         .form-select {
+            width: 100%;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            margin-bottom: 10px;
+         }
+      }
+   </style>
+</head>
+
+<body id="body" style="background-color: rgb(179, 21, 21)">
+   <div class="container-fluid text-white mt-5">
+      <div class="row text-center mt-5">
+         <div>
+            <img src="{{ url_for('static', filename='images/' + image_data) }}" alt="Chatbot" class="img-fluid mb-4"
+               style="max-height: 200px" />
+         </div>
+         <strong id="colorText">
+            <p>{{first_line}}</p>
+            <p id="intoductionMessage"></p>
+         </strong>
+      </div>
+      <div id="loaderOverlay">
+         <div id="loaderIcon">
+            <img src="{{ url_for('static', filename='images/loading.gif') }}" alt="Loading..." />
+         </div>
+      </div>
+      <form method="POST" id="login_form" class="d-flex justify-content-center"
+         action="{{ url_for('customers.chatGPT_response_table') }}">
+         <div class="row text-center">
+            <div class="col-md-12 col-sm-12 col-lg-12">
+               <!-- Word Slider (Dropdown) -->
+               <div class="form-group mb-3" id="wordSliderContainer" style="display: none;">
+                  <select class="form-select" id="wordSlider" name="word_slider">
+                     <option value="" disabled selected>Choose a recipe</option>
+                     <!-- Options will be populated dynamically -->
+                  </select>
+               </div>
+
+               <!-- Original input box wrapped in a div -->
+               <div id="inputContainer" class="form-control input-group">
+                  <input type="text" id="user_input" name="user_input" class="form-control"
+                     placeholder="Enter any recipe" />
+                  <button type="button" id="voiceButton" class="btn btn-danger">
+                     <i class="fa fa-2x fa-microphone" style="color: rgb(14, 13, 13)"></i>
+                  </button>
+               </div>
+            </div>
+            <input type="hidden" name="customer_name" id="customer_name" value="{{ customer_name }}" />
+               <div class="row mt-3 justify-content-center">
+                  <div class="col-md-7 col-sm-10 col-lg-6 position-relative">
+                     <div class="options-outer-container">
+                        <div class="scroll-arrow up-arrow" onclick="scrollOptions('up')">
+                           <i class="fa fa-chevron-up"></i>
+                        </div>
+                        <div class="options-scroll-container" id="optionsContainer">
+                           {% for option in options %}
+                           <div class="form-check custom-option">
+                              <label class="form-check-label d-flex align-items-center w-100" for="option_{{ option.id }}">
+                                 <span class="option-text">{{ option.text }}</span>
+                                 <input class="form-check-input ms-auto" type="radio" name="wine_option"
+                                    id="option_{{ option.id }}" value="{{ option.id }}" {% if loop.first %}checked{% endif %} />
+                              </label>
+                           </div>
+                           {% endfor %}
+                        </div>
+                        <div class="scroll-arrow down-arrow" onclick="scrollOptions('down')">
+                           <i class="fa fa-chevron-down"></i>
+                        </div>
+                     </div>
+                  </div>
+                  <div class="col-md-6 col-sm-6 col-lg-6 mt-4">
+                     <button type="submit" class="btn btn-lg btn-success w-100" onclick="searchClicked(event)">
+                        Continue
+                     </button>
+                  </div>
+               </div>
+         </div>
+      </form>
+   </div>
+</body>
+
+</html>
+
+<script>
+   $(document).ready(function () {
+      var storedWord = sessionStorage.getItem("selectedWord");
+      if (storedWord) {
+         $('#wordSlider').val(storedWord);  // Restore dropdown selection
+         $('#user_input').val(storedWord);  // Restore input field value
+      }
+      $("#loaderOverlay").hide();
+      $("#login_form").submit(function () {
+         $("#loaderOverlay").show();
+      });
+
+      $.getJSON('/display_food', function (data) {
+         if (data.food_input && data.food_input !== 'No food input provided') {
+            $('#user_input').val(data.food_input);
+         }
+      });
+
+      window.addEventListener("popstate", function (event) {
+         $("#loaderOverlay").hide();
+         $("#login_form")[0].reset();
+      });
+   });
+
+   document.getElementById("voiceButton").addEventListener("click", function () {
+      var recognition = new webkitSpeechRecognition() || SpeechRecognition();
+      recognition.lang = "en-US";
+
+      recognition.onresult = function (event) {
+         var result = event.results[0][0].transcript;
+         document.getElementById("user_input").value = result;
+      };
+
+      recognition.start();
+   });
+
+   var body = document.getElementById("body");
+   var color_value = "{{ color }}";
+   var colorText = document.getElementById("colorText");
+
+   if (color_value === "Y") {
+      body.style.backgroundColor = "green";
+   }
+   if (color_value === "G") {
+      body.style.backgroundColor = "#FFD700";
+      colorText.style.color = "black";
+   }
+
+   function scrollOptions(direction) {
+      const container = document.getElementById('optionsContainer');
+      const scrollAmount = 50;
+      if (direction === 'up') {
+         container.scrollTop -= scrollAmount;
+      } else {
+         container.scrollTop += scrollAmount;
+      }
+   }
+
+   function searchClicked(event) {
+      event.preventDefault();
+      var selectedOption = document.querySelector('input[name="wine_option"]:checked').value;
+      var selectedWord = $('#wordSlider').val();
+      var userInput = $('#user_input').val().trim();
+      var aiCstmrKey = "{{ ai_cstmr_key }}";
+      var rstrnt_ind = "{{ rstrnt_ind }}";
+      var prime_ind = "{{ prime_ind }}";
+
+      console.log("Selected Option:", selectedOption);
+
+      if (!selectedWord && userInput === "") {
+         alert("Please select an option from the dropdown or enter a value in the input field.");
+         return;
+      }
+
+      var incomingText = selectedWord || userInput;
+
+      if (prime_ind === 'Y' && incomingText) {
+         sessionStorage.setItem("selectedWord", incomingText);
+         fetch('/capture_food', {
+            method: 'POST',
+            headers: {
+               'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ food: incomingText })
+         }).finally(function () {
+            window.location.href = "/";
+         });
+      } else if (selectedWord && rstrnt_ind !== 'Y') {
+         sessionStorage.setItem("selectedWord", selectedWord);
+         fetch('/capture_food', {
+            method: 'POST',
+            headers: {
+               'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ food: selectedWord })
+         }).finally(function () {
+            window.location.href = "/";
+         });
+      } else if (selectedOption === "6") {
+         // window.location.href = "{{ url_for('restaurant') }}?ai_cstmr_key=" + encodeURIComponent(aiCstmrKey);
+      } else {
+         $("#loaderOverlay").show();
+         setTimeout(function () {
+            document.getElementById("login_form").submit();
+         }, 500);
+      }
+   }
+
+   $(document).ready(function () {
+      document.getElementById("intoductionMessage").innerHTML = "{{intro_text}}";
+      var matches_list = {{ matches_list | tojson }};
+      var dropdown = $('#wordSlider');
+      var inputContainer = $('#inputContainer');
+
+      if (matches_list.length > 0) {
+         $('#wordSliderContainer').show(); // Show the dropdown
+         inputContainer.hide(); // Hide the input field when dropdown is visible
+         matches_list.forEach(function (word) {
+            var option = $('<option></option>').text(word).val(word);
+            dropdown.append(option);
+         });
+      } else {
+         inputContainer.show(); // Show the input field if no dropdown options
+      }
+
+      $('#wordSlider').on('change', function () {
+         document.getElementById("user_input").value = ''; // Clear the input field (though hidden)
+      });
+
+      $('#wordSlider').on('click', function () {
+         var selectedWord = this.value;
+         if (selectedWord) {
+            document.getElementById("user_input").value = ''; // Clear the input field (though hidden)
+         }
+      });
+
+      $(document).on('click', '.highlighted-word', function () {
+         var selectedWord = $(this).text();
+         document.getElementById("user_input").value = selectedWord;
+         $('#wordSlider').val(selectedWord);
+      });
+   });
+</script>

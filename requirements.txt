@@ -1,0 +1,4 @@
+flask
+bs4
+mysql_connector
+openai==0.28.0

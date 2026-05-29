@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WineBuddy Chat</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: rgb(179, 21, 21);
+            color: #ffffff;
+            font-family: 'Arial', sans-serif;
+        }
+
+        .container {
+            max-width: 800px;
+        }
+
+        .logo {
+            max-width: 150px;
+            margin-bottom: 1rem;
+        }
+
+        .card {
+            background-color: rgba(255, 255, 255, 0.1);
+            border: none;
+            transition: transform 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+        }
+
+        .card-img-top {
+            height: 200px;
+            object-fit: cover;
+        }
+
+        .btn-custom {
+            background-color: #ffffff;
+            color: #8B0000;
+            border: none;
+            padding: 0.5rem 1.5rem;
+            font-weight: bold;
+            transition: background-color 0.3s ease;
+        }
+
+        .btn-custom:hover {
+            background-color: #f8f9fa;
+            color: #6a0000;
+        }
+
+        .py-5 {
+            padding-top: 2rem !important;
+        }
+
+        .input-section {
+            margin: 0rem 0 3rem 0;
+            text-align: center;
+        }
+
+        .input-description {
+            font-size: 1.2rem;
+            margin-bottom: 1rem;
+            line-height: 1.6;
+            padding: 0 1rem;
+        }
+
+        #foodInput {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 1rem;
+            font-size: 1.1rem;
+            border-radius: 25px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            background-color: #e3e3e3;
+            color: black;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        #foodInput::placeholder {
+            color: grey;
+        }
+
+        #foodInput:focus {
+            outline: none;
+            background-color: #e3e3e3;
+            border-color: rgba(255, 255, 255, 0.5);
+            box-shadow: 0 6px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .fullscreen-loader {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgb(179, 21, 21);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+
+        .loader {
+            border: 8px solid #f3f3f3;
+            border-top: 8px solid #8B0000;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        #content {
+            display: none;
+        }
+
+        header.text-center {
+            margin-bottom: 2rem !important;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="fullscreen-loader" class="fullscreen-loader">
+        <div class="loader"></div>
+    </div>
+
+    <div id="content" class="container py-5">
+        <header class="text-center mb-5">
+            <img id="logo-img" src="" alt="WineBuddy Logo" class="logo">
+            <p id="tagline" class="lead">From Casual Sipper to Seasoned Connoisseur &ndash; Discover Your Perfect Wine/Beer Pairing from Around the World with Just a Tap!</p>
+        </header>
+
+        <div class="input-section">
+            <input type="text" id="foodInput" class="form-control" placeholder="(Optional) Enter any food or event for pairing" value="{{  incoming if incoming else  ''  }}">
+        </div>
+
+        <div class="row g-4 justify-content-center">
+            <div class="col-md-6">
+                <div class="card h-100 text-center">
+                    <img id="wine-img" src="" alt="Wine" class="card-img-top">
+                    <div class="card-body">
+                        <h5 id="wine-title" class="card-title">Wines from the U.S. and Around the World for Perfect Pairing</h5>
+                        <p id="wine-description" class="card-text">Discover the perfect wine for your meal or occasion.
+                        </p>
+                        <a href="{{ url_for('explore_wine') }}" class="btn btn-custom wine-btn">Continue</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card h-100 text-center">
+                    <img id="beer-img" src="" alt="Beer" class="card-img-top">
+                    <div class="card-body">
+                        <h5 id="beer-title" class="card-title">Beers from the U.S. and Around the World for Perfect Pairing</h5>
+                        <p id="beer-description" class="card-text">Find the ideal beer to complement your food or event.
+                        </p>
+                        <a href="{{ url_for('explore_beer') }}" class="btn btn-custom beer-btn">Continue</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const fullscreenLoader = document.getElementById('fullscreen-loader');
+        const content = document.getElementById('content');
+
+        fetch('/homescreen')
+            .then(response => response.json())
+            .then(data => {
+                if (data.length > 0) {
+                    const homeData = data[0];
+
+                    if (homeData.input_field_text) {
+                        document.getElementById('foodInput').placeholder = homeData.input_field_text;
+                    }
+
+                    if (homeData.logo_img_urlbb_txt) {
+                        document.getElementById('logo-img').src = homeData.logo_img_urlbb_txt;
+                    }
+
+                    document.getElementById('tagline').textContent = homeData.tagline;
+
+                    if (homeData.wine_img_urlbb_txt) {
+                        document.getElementById('wine-img').src = homeData.wine_img_urlbb_txt;
+                    }
+                    document.getElementById('wine-title').textContent = homeData.wine_heading;
+                    document.getElementById('wine-description').textContent = homeData.wine_description;
+
+                    if (homeData.beer_img_urlbb_txt) {
+                        document.getElementById('beer-img').src = homeData.beer_img_urlbb_txt;
+                    }
+                    document.getElementById('beer-title').textContent = homeData.beer_heading;
+                    document.getElementById('beer-description').textContent = homeData.beer_description;
+                }
+
+                fullscreenLoader.style.display = 'none';
+                content.style.display = 'block';
+            })
+            .catch(error => {
+                console.error('Error fetching homescreen data:', error);
+                fullscreenLoader.style.display = 'none';
+                content.style.display = 'block';
+            });
+
+        fetch('/display_food')
+            .then(response => response.json())
+            .then(data => {
+                if (data.food_input && data.food_input !== 'No food input provided') {
+                    const foodInputElement = document.getElementById('foodInput');
+                    if (!foodInputElement.value) {
+                        foodInputElement.value = data.food_input;
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching captured food:', error);
+            });
+
+        document.querySelector('.wine-btn').addEventListener('click', function (event) {
+            captureUserInput();
+        });
+
+        document.querySelector('.beer-btn').addEventListener('click', function (event) {
+            captureUserInput();
+        });
+
+        function captureUserInput() {
+            const foodInput = document.getElementById('foodInput').value;
+
+            fetch('/capture_food', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ food: foodInput })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Success:', data);
+                })
+                .catch((error) => {
+                    console.error('Error:', error);
+                });
+        }
+    </script>
+</body>
+
+</html>
