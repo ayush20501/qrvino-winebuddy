@@ -5,9 +5,7 @@ import mysql.connector
 from bs4 import BeautifulSoup
 import os
 import logging
-
-# file_path = './static/images'
-file_path = '/home/muchnikm/winebuddy/static/images'
+import base64
 
 customers_bp = Blueprint('customers', __name__)
 
@@ -34,15 +32,11 @@ def show_image(page_name):
                 rstrnt_ind = result['RSTRNT_IND']
                 prime_ind = result['PRIME_IND']
                 image_data = result['CHTBX_LOGO_IMG']
+                image_data_base64 = base64.b64encode(image_data).decode('utf-8') if image_data else ""
                 first_line = result['CHTBX_FRST_LINE']
                 second_line_from_database = result['CHTBX_SCND_LINE']
                 ai_cstmr_key = result['AI_CSTMR_KEY']
                 session['ai_cstmr_key'] = ai_cstmr_key
-                static_images_folder = file_path
-                temp_image_filename = 'temp_image.png'
-                temp_image_path = os.path.join(static_images_folder, temp_image_filename)
-                with open(temp_image_path, 'wb') as temp_image:
-                    temp_image.write(image_data)
 
                 options_list = []
                 for i in range(1, 11):
@@ -53,7 +47,7 @@ def show_image(page_name):
                 if meat_cut_ind == 'Y':
                     second_line_from_database = re.sub(r'\*([^\*]+)\*', make_clickable, second_line_from_database)
                 cursor.close()
-                return render_template('aiCustomers.html', image_data=temp_image_filename, first_line=first_line, second_line=second_line_from_database,customer_name=page_name, color = "Y", options = options_list, rstrnt_ind=rstrnt_ind, prime_ind=prime_ind)
+                return render_template('aiCustomers.html', image_data=image_data_base64, first_line=first_line, second_line=second_line_from_database,customer_name=page_name, color = "Y", options = options_list, rstrnt_ind=rstrnt_ind, prime_ind=prime_ind)
             else:
                 cursor.close()
                 return {'page_name': page_name}
@@ -68,15 +62,11 @@ def show_image(page_name):
                 rstrnt_ind = result['RSTRNT_IND']
                 prime_ind = result['PRIME_IND']
                 image_data = result['CHTBX_LOGO_IMG']
+                image_data_base64 = base64.b64encode(image_data).decode('utf-8') if image_data else ""
                 first_line = result['CHTBX_FRST_LINE']
                 second_line_from_database = result['CHTBX_SCND_LINE']
                 ai_cstmr_key = result['AI_CSTMR_KEY']
                 session['ai_cstmr_key'] = ai_cstmr_key
-                static_images_folder = file_path
-                temp_image_filename = 'temp_image.png'
-                temp_image_path = os.path.join(static_images_folder, temp_image_filename)
-                with open(temp_image_path, 'wb') as temp_image:
-                    temp_image.write(image_data)
 
                 options_list = []
                 for i in range(1, 11):
@@ -92,7 +82,7 @@ def show_image(page_name):
                     matches_list = re.findall(r'\*([^\*]+)\*', second_line_from_database)
 
                 matches_list = sorted(matches_list)
-                return render_template('aiCustomers.html',intro_text=intro_text, matches_list = matches_list,image_data=temp_image_filename, first_line=first_line, second_line=second_line_from_database,customer_name=page_name, color = "G", options = options_list, rstrnt_ind=rstrnt_ind, prime_ind=prime_ind)
+                return render_template('aiCustomers.html',intro_text=intro_text, matches_list = matches_list,image_data=image_data_base64, first_line=first_line, second_line=second_line_from_database,customer_name=page_name, color = "G", options = options_list, rstrnt_ind=rstrnt_ind, prime_ind=prime_ind)
         else:
             query = "SELECT RSTRNT_IND,MEAT_CUT_IND,PRIME_IND,AI_CSTMR_KEY,CHTBX_LOGO_IMG, CHTBX_FRST_LINE, CHTBX_SCND_LINE, OPTION_1_TXT, OPTION_2_TXT, OPTION_3_TXT, OPTION_4_TXT, OPTION_5_TXT, OPTION_6_TXT, OPTION_7_TXT, OPTION_8_TXT, OPTION_9_TXT, OPTION_10_TXT FROM ai_cstmr WHERE AI_CSTMR_START_TXT LIKE %s"
             cursor.execute(query,('%' + page_name + '%',))
@@ -102,17 +92,11 @@ def show_image(page_name):
                 rstrnt_ind = result['RSTRNT_IND']
                 prime_ind = result['PRIME_IND']
                 image_data = result['CHTBX_LOGO_IMG']
+                image_data_base64 = base64.b64encode(image_data).decode('utf-8') if image_data else ""
                 first_line = result['CHTBX_FRST_LINE']
                 second_line_from_database = result['CHTBX_SCND_LINE']
                 ai_cstmr_key = result['AI_CSTMR_KEY']
                 session['ai_cstmr_key'] = ai_cstmr_key
-                static_images_folder = file_path
-                temp_image_filename = 'temp_image.png'
-
-                temp_image_path = os.path.join(static_images_folder, temp_image_filename)
-
-                with open(temp_image_path, 'wb') as temp_image:
-                    temp_image.write(image_data)
 
                 options_list = []
                 for i in range(1, 11):
@@ -137,7 +121,7 @@ def show_image(page_name):
                     intro_text = intro_text_match.group(1)+":" if intro_text_match else ""
                     matches_list = re.findall(r'\*([^\*]+)\*', second_line_from_database)
                 matches_list = sorted(matches_list)
-                return render_template('aiCustomers.html',intro_text=intro_text, matches_list = matches_list, ai_cstmr_key = ai_cstmr_key, image_data=temp_image_filename,image_url = image_url,
+                return render_template('aiCustomers.html',intro_text=intro_text, matches_list = matches_list, ai_cstmr_key = ai_cstmr_key, image_data=image_data_base64,image_url = image_url,
                 first_line=first_line, second_line=second_line_from_database,customer_name=page_name, color = "N", options = options_list, rstrnt_ind=rstrnt_ind, prime_ind=prime_ind)
             else:
                 cursor.close()

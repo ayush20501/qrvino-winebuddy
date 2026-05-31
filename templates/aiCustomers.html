@@ -143,8 +143,10 @@
    <div class="container-fluid text-white mt-5">
       <div class="row text-center mt-5">
          <div>
-            <img src="{{ url_for('static', filename='images/' + image_data) }}" alt="Chatbot" class="img-fluid mb-4"
+            {% if image_data %}
+            <img src="data:image/png;base64,{{ image_data }}" alt="Chatbot" class="img-fluid mb-4"
                style="max-height: 200px" />
+            {% endif %}
          </div>
          <strong id="colorText">
             <p>{{first_line}}</p>
