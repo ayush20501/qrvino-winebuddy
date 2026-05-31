@@ -159,7 +159,7 @@
          </div>
       </div>
       <form method="POST" id="login_form" class="d-flex justify-content-center"
-         action="{{ url_for('customers.chatGPT_response_table') }}">
+         action="{{ url_for('customers.get_customer_recommendations') }}">
          <div class="row text-center">
             <div class="col-md-12 col-sm-12 col-lg-12">
                <!-- Word Slider (Dropdown) -->
@@ -314,7 +314,7 @@
             window.location.href = "/";
          });
       } else if (selectedOption === "6") {
-         // window.location.href = "{{ url_for('restaurant') }}?ai_cstmr_key=" + encodeURIComponent(aiCstmrKey);
+         // window.location.href = "{{ url_for('select_wine') }}?ai_cstmr_key=" + encodeURIComponent(aiCstmrKey);
       } else {
          $("#loaderOverlay").show();
          setTimeout(function () {

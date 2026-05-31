@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request,redirect,g,Blueprint,session
-from config_db import openai, create_database_connection
+from app.config import openai, create_database_connection
 import re
 import mysql.connector
 from bs4 import BeautifulSoup
@@ -13,17 +13,45 @@ def make_clickable(match):
         word = match.group(1)
         return f'<a href="#" style="color:yellow" class="highlighted-word" onclick="selectCut(\'{word}\')">{word}</a>'
 
-@customers_bp.route('/<page_name>')
-def show_image(page_name):
+def slugify(text):
+    text = str(text).strip().lower()
+    text = re.sub(r'\s+', '-', text)
+    text = re.sub(r'[^\w\-]+', '', text)
+    text = re.sub(r'\-\-+', '-', text)
+    return text.strip('-')
+
+def find_customer_by_slug(slug):
+    db_connection = create_database_connection()
+    cursor = db_connection.cursor(dictionary=True, buffered=True)
+    try:
+        cursor.execute("SELECT AI_CSTMR_START_TXT FROM ai_cstmr")
+        rows = cursor.fetchall()
+        for row in rows:
+            raw_name = row['AI_CSTMR_START_TXT'].strip()
+            if slugify(raw_name) == slug:
+                return raw_name
+    except Exception as e:
+        logging.error(f"Error matching slug: {e}")
+    finally:
+        cursor.close()
+        db_connection.close()
+    return None
+
+@customers_bp.route('/chat/<slug>')
+def show_image(slug):
+    page_name = find_customer_by_slug(slug)
+    if not page_name:
+        return redirect('/')
+    db_connection = None
+    cursor = None
     try:
         db_connection = create_database_connection()
-        cursor = db_connection.cursor(dictionary=True)
+        cursor = db_connection.cursor(dictionary=True, buffered=True)
         query = "SELECT CANA_IND, BEER_IND from ai_cstmr WHERE AI_CSTMR_START_TXT LIKE %s"
         cursor.execute(query,('%' + page_name + '%',))
         result = cursor.fetchone()
 
-
-        if result != None and result['CANA_IND'] == 'Y':
+        if result is not None and result['CANA_IND'] == 'Y':
             query = "SELECT RSTRNT_IND,MEAT_CUT_IND,PRIME_IND,AI_CSTMR_KEY,CHTBX_LOGO_IMG, CHTBX_FRST_LINE, CHTBX_SCND_LINE, OPTION_1_TXT, OPTION_2_TXT, OPTION_3_TXT, OPTION_4_TXT, OPTION_5_TXT, OPTION_6_TXT, OPTION_7_TXT, OPTION_8_TXT, OPTION_9_TXT, OPTION_10_TXT FROM ai_cstmr WHERE AI_CSTMR_START_TXT LIKE %s"
             cursor.execute(query,('%' + page_name + '%',))
             result = cursor.fetchone()
@@ -46,13 +74,11 @@ def show_image(page_name):
 
                 if meat_cut_ind == 'Y':
                     second_line_from_database = re.sub(r'\*([^\*]+)\*', make_clickable, second_line_from_database)
-                cursor.close()
-                return render_template('aiCustomers.html', image_data=image_data_base64, first_line=first_line, second_line=second_line_from_database,customer_name=page_name, color = "Y", options = options_list, rstrnt_ind=rstrnt_ind, prime_ind=prime_ind)
+                return render_template('customer_chat.html', image_data=image_data_base64, first_line=first_line, second_line=second_line_from_database,customer_name=page_name, color = "Y", options = options_list, rstrnt_ind=rstrnt_ind, prime_ind=prime_ind)
             else:
-                cursor.close()
                 return {'page_name': page_name}
 
-        if result != None and result['BEER_IND'] == 'Y':
+        elif result is not None and result['BEER_IND'] == 'Y':
             query = "SELECT RSTRNT_IND,MEAT_CUT_IND,PRIME_IND,AI_CSTMR_KEY,CHTBX_LOGO_IMG, CHTBX_FRST_LINE, CHTBX_SCND_LINE, OPTION_1_TXT, OPTION_2_TXT, OPTION_3_TXT, OPTION_4_TXT, OPTION_5_TXT, OPTION_6_TXT, OPTION_7_TXT, OPTION_8_TXT, OPTION_9_TXT, OPTION_10_TXT FROM ai_cstmr WHERE AI_CSTMR_START_TXT LIKE %s"
             cursor.execute(query,('%' + page_name + '%',))
             result = cursor.fetchone()
@@ -82,7 +108,9 @@ def show_image(page_name):
                     matches_list = re.findall(r'\*([^\*]+)\*', second_line_from_database)
 
                 matches_list = sorted(matches_list)
-                return render_template('aiCustomers.html',intro_text=intro_text, matches_list = matches_list,image_data=image_data_base64, first_line=first_line, second_line=second_line_from_database,customer_name=page_name, color = "G", options = options_list, rstrnt_ind=rstrnt_ind, prime_ind=prime_ind)
+                return render_template('customer_chat.html',intro_text=intro_text, matches_list = matches_list,image_data=image_data_base64, first_line=first_line, second_line=second_line_from_database,customer_name=page_name, color = "G", options = options_list, rstrnt_ind=rstrnt_ind, prime_ind=prime_ind)
+            else:
+                return {'page_name': page_name}
         else:
             query = "SELECT RSTRNT_IND,MEAT_CUT_IND,PRIME_IND,AI_CSTMR_KEY,CHTBX_LOGO_IMG, CHTBX_FRST_LINE, CHTBX_SCND_LINE, OPTION_1_TXT, OPTION_2_TXT, OPTION_3_TXT, OPTION_4_TXT, OPTION_5_TXT, OPTION_6_TXT, OPTION_7_TXT, OPTION_8_TXT, OPTION_9_TXT, OPTION_10_TXT FROM ai_cstmr WHERE AI_CSTMR_START_TXT LIKE %s"
             cursor.execute(query,('%' + page_name + '%',))
@@ -109,7 +137,6 @@ def show_image(page_name):
                 result = cursor.fetchone()
                 image_url = result['CSTMR_WINE_URL']
 
-
                 if image_url == '' or image_url == 'null':
                     image_url = False
                 
@@ -121,23 +148,22 @@ def show_image(page_name):
                     intro_text = intro_text_match.group(1)+":" if intro_text_match else ""
                     matches_list = re.findall(r'\*([^\*]+)\*', second_line_from_database)
                 matches_list = sorted(matches_list)
-                return render_template('aiCustomers.html',intro_text=intro_text, matches_list = matches_list, ai_cstmr_key = ai_cstmr_key, image_data=image_data_base64,image_url = image_url,
+                return render_template('customer_chat.html',intro_text=intro_text, matches_list = matches_list, ai_cstmr_key = ai_cstmr_key, image_data=image_data_base64,image_url = image_url,
                 first_line=first_line, second_line=second_line_from_database,customer_name=page_name, color = "N", options = options_list, rstrnt_ind=rstrnt_ind, prime_ind=prime_ind)
             else:
-                cursor.close()
                 return {'page_name': page_name}
     except Exception as e:
         return f"Error: {str(e)}"
+    finally:
+        if cursor:
+            cursor.close()
+        if db_connection:
+            db_connection.close()
 
-def get_chatbot_response(messages):
-    response =openai.ChatCompletion.create(
-    model="gpt-3.5-turbo",
-    messages=messages
-    )
-    return response.choices[0].message["content"]
-
-@customers_bp.route('/chatGPT_response_table', methods=['POST'])
-def chatGPT_response_table():
+@customers_bp.route('/customer/recommendations', methods=['POST'])
+def get_customer_recommendations():
+    db_connection = None
+    cursor = None
     try:
         link_exists = False
         link_reg_exists = False
@@ -147,8 +173,12 @@ def chatGPT_response_table():
         user_input = request.form.get("user_input")
         wine_option = request.form.get('wine_option')
         customer_name = request.form.get('customer_name')
+        
+        if not wine_option or not str(wine_option).isdigit() or not (1 <= int(wine_option) <= 10):
+            wine_option = "1"
+            
         db_connection = create_database_connection()
-        cursor = db_connection.cursor(dictionary=True)
+        cursor = db_connection.cursor(dictionary=True, buffered=True)
 
         query = "SELECT RSTRNT_IND, NO_WINE_BEER_IND FROM ai_cstmr WHERE AI_CSTMR_START_TXT LIKE %s"
         cursor.execute(query, ('%' + customer_name + '%',))
@@ -208,7 +238,7 @@ def chatGPT_response_table():
                         if matched:
                             link_exists = True
                             myflag=1
-                            link = f'<a href="/restaurants?key={matched["VRTL_KEY"]}&testflag={myflag}">{matched["VRTL_NM"]}</a>'
+                            link = f'<a href="/customer/stores?key={matched["VRTL_KEY"]}&testflag={myflag}">{matched["VRTL_NM"]}</a>'
                             columns[0] = link
                     if cl is not None :
                         column_words_processed = [(word.split('(')[0].replace(" ", "").lower().strip() if '(' in word else word.replace(" ", "").lower().strip())
@@ -218,141 +248,144 @@ def chatGPT_response_table():
                             link_reg_exists = True
                             if link_exists and link_reg_exists:
                                 myflag=3
-                            link_reg = f'<a href="/restaurants?testflag={myflag}&vrtlkey={matched["VRTL_KEY"]}&keyreg={matched_reg["CNTRGN_KEY"]}">{matched_reg["CNTRGN_NM"]}</a>'
+                            link_reg = f'<a href="/customer/stores?testflag={myflag}&vrtlkey={matched["VRTL_KEY"]}&keyreg={matched_reg["CNTRGN_KEY"]}">{matched_reg["CNTRGN_NM"]}</a>'
                             columns[matched_column_no-1] = link_reg
                     html_table += "<tr>\n"
                     html_table += "".join([f"<td>{column}</td>\n" for column in columns])
                     html_table += "</tr>\n"
                 html_table += "</tbody>\n</table>"
-                return render_template("chatGPT_response_table.html", token=1,var=html_table, rstrnt_ind=rstrnt_ind, no_wine_beer_ind=no_wine_beer_ind)
+                return render_template("recommendations_table.html", token=1,var=html_table, rstrnt_ind=rstrnt_ind, no_wine_beer_ind=no_wine_beer_ind)
             else:
                 formatted_response = chatbot_response
                 for varietal, varietal_key in matched_varietals:
-                    varietal_link = f'<a href="/restaurants?key={varietal_key}">{varietal}</a>'
+                    varietal_link = f'<a href="/customer/stores?key={varietal_key}">{varietal}</a>'
                     formatted_response = formatted_response.replace(varietal, varietal_link, 1)
                 paragraphs_with_links = formatted_response.split('\n\n')
-                return render_template("chatGPT_response_table.html",paragraphs_with_links=paragraphs_with_links, rstrnt_ind=rstrnt_ind, no_wine_beer_ind=no_wine_beer_ind)
+                return render_template("recommendations_table.html",paragraphs_with_links=paragraphs_with_links, rstrnt_ind=rstrnt_ind, no_wine_beer_ind=no_wine_beer_ind)
         else:
             return "No response from chatbot"
     except Exception as e:
         return f"Error: {str(e)}"
     finally:
-        cursor.close()
-        db_connection.close()
+        if cursor:
+            cursor.close()
+        if db_connection:
+            db_connection.close()
 
-@customers_bp.route('/restaurants')
-def restaurants():
+def get_chatbot_response(messages):
+    response =openai.ChatCompletion.create(
+    model="gpt-3.5-turbo",
+    messages=messages
+    )
+    return response.choices[0].message["content"]
+
+@customers_bp.route('/customer/stores')
+def show_customer_stores():
     testflag = request.args.get("testflag")
+    db_connection = None
+    cursor = None
     if testflag == "3":
         if 'key' in request.args:
             ai_vrtl_key = request.args.get("key")
             session['ai_vrtl_key'] = ai_vrtl_key
             cstmr_key=session.get('ai_cstmr_key')
             try:
-                selr_key=[]
                 db_connection = create_database_connection()
-                cursor = db_connection.cursor(dictionary=True)
+                cursor = db_connection.cursor(dictionary=True, buffered=True)
                 query="""SELECT distinct WINE_SELR.* FROM CSTMR_WIN_SELR JOIN ai_cstmr ON CSTMR_WIN_SELR.AI_CSTMR_KEY = ai_cstmr.AI_CSTMR_KEY JOIN WINE_SELR ON CSTMR_WIN_SELR.WIN_SELR_KEY = WINE_SELR.WINE_SELR_KEY WHERE ai_cstmr.AI_CSTMR_KEY = %s AND CSTMR_WIN_SELR.ChatGPT_ACTV_IND = 'Y'"""
                 cursor.execute(query, (cstmr_key,))
                 restaurants = cursor.fetchall()
-                return render_template("restaurants.html", restr=restaurants, vrtl_key=ai_vrtl_key)
+                return render_template("store_selection.html", restr=restaurants, vrtl_key=ai_vrtl_key)
             except Exception as e:
                 return f"Error1: {str(e)}"
             finally:
-                cursor.close()
-                db_connection.close()
+                if cursor:
+                    cursor.close()
+                if db_connection:
+                    db_connection.close()
         else:
             ai_reg_key = request.args.get("keyreg")
             aivrtlkey = request.args.get("vrtlkey")
             session['ai_reg_key'] = ai_reg_key
             cstmr_key=session.get('ai_cstmr_key')
             try:
-                selr_key_reg=[]
                 db_connection = create_database_connection()
-                cursor = db_connection.cursor(dictionary=True)
+                cursor = db_connection.cursor(dictionary=True, buffered=True)
                 query="""SELECT distinct WINE_SELR.* FROM CSTMR_WIN_SELR JOIN ai_cstmr ON CSTMR_WIN_SELR.AI_CSTMR_KEY = ai_cstmr.AI_CSTMR_KEY JOIN WINE_SELR ON CSTMR_WIN_SELR.WIN_SELR_KEY = WINE_SELR.WINE_SELR_KEY WHERE ai_cstmr.AI_CSTMR_KEY = %s AND CSTMR_WIN_SELR.ChatGPT_ACTV_IND = 'Y'"""
                 cursor.execute(query, (cstmr_key,))
                 restaurants = cursor.fetchall()
-                return render_template("restaurants.html", restr=restaurants,reg_key=ai_reg_key,vrtl=aivrtlkey)
+                return render_template("store_selection.html", restr=restaurants,reg_key=ai_reg_key,vrtl=aivrtlkey)
             except Exception as e:
                 return f"Error2: {str(e)}"
             finally:
-                cursor.close()
-                db_connection.close()
+                if cursor:
+                    cursor.close()
+                if db_connection:
+                    db_connection.close()
     elif testflag == "1":
        if 'key' in request.args:
             ai_vrtl_key = request.args.get("key")
             session['ai_vrtl_key'] = ai_vrtl_key
             cstmr_key=session.get('ai_cstmr_key')
             try:
-                selr_key=[]
                 db_connection = create_database_connection()
-                cursor = db_connection.cursor(dictionary=True)
+                cursor = db_connection.cursor(dictionary=True, buffered=True)
                 query="""SELECT distinct WINE_SELR.* FROM CSTMR_WIN_SELR JOIN ai_cstmr ON CSTMR_WIN_SELR.AI_CSTMR_KEY = ai_cstmr.AI_CSTMR_KEY JOIN WINE_SELR ON CSTMR_WIN_SELR.WIN_SELR_KEY = WINE_SELR.WINE_SELR_KEY WHERE ai_cstmr.AI_CSTMR_KEY = %s AND CSTMR_WIN_SELR.ChatGPT_ACTV_IND = 'Y'"""
                 cursor.execute(query, (cstmr_key,))
                 restaurants = cursor.fetchall()
-                return render_template("restaurants.html", restr=restaurants, vrtl_key=ai_vrtl_key)
+                return render_template("store_selection.html", restr=restaurants, vrtl_key=ai_vrtl_key)
             except Exception as e:
                 return f"Error3: {str(e)}"
             finally:
-                cursor.close()
-                db_connection.close()
+                if cursor:
+                    cursor.close()
+                if db_connection:
+                    db_connection.close()
     else:
         return"There is no match wine seller"
 
-@customers_bp.route("/external_URL", methods=["GET", "POST"])
-def external_URL():
-    if request.method == "POST":
-        selected_restaurant_key = request.form.get("selected_restaurant")
-        vrtl_key = request.form.get('vrtlkey')
-        reg_key = request.form.get('regkey')
-        if vrtl_key and reg_key:
-            target_url = get_target_url_reg(selected_restaurant_key,reg_key,vrtl_key)
-        else:
-            target_url = get_target_url(selected_restaurant_key,vrtl_key)
-        if target_url:
-            return redirect(target_url)
-        else:
-            return """
-                <html>
-                <head>
-                    <script>
-                        alert("Target URL not found");
-                        window.location.href = "/restaurants";
-                    </script>
-                </head>
-                <body>
-                    <p>If you are not redirected, <a href="/restaurants">click here</a>.</p>
-                </body>
-                </html>
-            """, 404
-    else:
-        return "Invalid request method", 405
-
 def get_target_url(restaurant_key, vrtl_key):
-    db_connection = create_database_connection()
-    cursor = db_connection.cursor(dictionary=True)
-    query = """
-        SELECT AFLT_VTRL_URL FROM aflt_vtrl_url
-        WHERE WINE_SELR_KEY = %s AND VRTL_KEY = %s
-        """
-    cursor.execute(query, (restaurant_key, vrtl_key))
-    url_result = cursor.fetchone()
-    if url_result:
-        return url_result["AFLT_VTRL_URL"]
-    else:
-        return False
+    db_connection = None
+    cursor = None
+    try:
+        db_connection = create_database_connection()
+        cursor = db_connection.cursor(dictionary=True, buffered=True)
+        query = """
+            SELECT AFLT_VTRL_URL FROM aflt_vtrl_url
+            WHERE WINE_SELR_KEY = %s AND VRTL_KEY = %s
+            """
+        cursor.execute(query, (restaurant_key, vrtl_key))
+        url_result = cursor.fetchone()
+        if url_result:
+            return url_result["AFLT_VTRL_URL"]
+    except Exception as e:
+        logging.error(f"Error in get_target_url: {e}")
+    finally:
+        if cursor:
+            cursor.close()
+        if db_connection:
+            db_connection.close()
+    return False
 
 def get_target_url_reg(restaurant_key,reg_key,vrtl):
-    db_connection = create_database_connection()
-    cursor = db_connection.cursor(dictionary=True)
-    query = """
-        SELECT AFLT_VTRL_URL_TXT FROM AFLT_CNTRGN_URL
-        WHERE WINE_SELR_KEY = %s AND CNTRGN_KEY = %s AND VRTL_KEY = %s
-        """
-    cursor.execute(query, (restaurant_key, reg_key,vrtl))
-    url_result = cursor.fetchone()
-    if url_result:
-        return url_result["AFLT_VTRL_URL_TXT"]
-    else:
-        return False
+    db_connection = None
+    cursor = None
+    try:
+        db_connection = create_database_connection()
+        cursor = db_connection.cursor(dictionary=True, buffered=True)
+        query = """
+            SELECT AFLT_VTRL_URL_TXT FROM AFLT_CNTRGN_URL
+            WHERE WINE_SELR_KEY = %s AND CNTRGN_KEY = %s AND VRTL_KEY = %s
+            """
+        cursor.execute(query, (restaurant_key, reg_key,vrtl))
+        url_result = cursor.fetchone()
+        if url_result:
+            return url_result["AFLT_VTRL_URL_TXT"]
+    except Exception as e:
+        logging.error(f"Error in get_target_url_reg: {e}")
+    finally:
+        if cursor:
+            cursor.close()
+        if db_connection:
+            db_connection.close()
+    return False

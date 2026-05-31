@@ -29,7 +29,7 @@
 <body>
     <div class="container ">
         <h2>Select Your Favorite Store</h2>
-        <form method="POST" action="{{ url_for('external_URL') }}">
+        <form method="POST" action="{{ url_for('redirect_external') }}">
             {% for restaurant in restr %}
             {% if vrtl_key %}
             <div class="p-3">
