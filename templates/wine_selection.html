@@ -1,55 +1,35 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Select Your Favorite Wine</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <style>
-        body {
-            background-color: rgb(179, 21, 21);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-        }
-        .container {
-            background-color: white;
-            padding: 20px;
-            border-radius: 9px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h2>Select Your Favorite Wine</h2>
+{% extends "base.html" %}
+{% block title %}WineBuddy AI — Select Wine{% endblock %}
+{% block body %}
+<div class="wb-center-page">
+    <div class="wb-page-narrow wb-panel">
+        <h1 class="wb-panel-title">Select your favorite wine</h1>
         <form id="wineForm">
-            {% for wine in wines %}
-            <div class="p-3">
-                <label>
-                    <input type="radio" name="selected_wine" value="{{ wine.CSTMR_WINE_URL }}">
-                    {{ wine.WINE_SELR_NM }}
-                </label>
+            <div class="wb-selection-list">
+                {% for wine in wines %}
+                <div class="wb-selection-item">
+                    <input type="radio" name="selected_wine" id="wine_{{ loop.index }}" value="{{ wine.CSTMR_WINE_URL }}" {% if loop.first %}checked{% endif %}>
+                    <label for="wine_{{ loop.index }}">{{ wine.WINE_SELR_NM }}</label>
+                </div>
+                {% endfor %}
             </div>
-            {% endfor %}
-            <div class="text-center">
-                <button type="submit" class="btn btn-lg btn-success mt-5">Continue</button>
+            <div class="mt-4">
+                <button type="submit" class="wb-btn wb-btn-primary wb-btn-block">Continue</button>
             </div>
         </form>
     </div>
-
-    <script>
-        document.getElementById("wineForm").addEventListener("submit", function(event) {
-            event.preventDefault();
-            var selectedWineUrl = document.querySelector('input[name="selected_wine"]:checked').value;
-            if (selectedWineUrl) {
-                window.location.href = selectedWineUrl; 
-            } else {
-                alert("Please select a wine option.");
-            }
-        });
-    </script>
-</body>
-</html>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+    document.getElementById("wineForm").addEventListener("submit", function(event) {
+        event.preventDefault();
+        const selected = document.querySelector('input[name="selected_wine"]:checked');
+        if (selected && selected.value) {
+            window.location.href = selected.value;
+        } else {
+            alert("Please select a wine option.");
+        }
+    });
+</script>
+{% endblock %}

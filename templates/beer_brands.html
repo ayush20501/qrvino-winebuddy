@@ -1,192 +1,103 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WineBuddy - Beer Selection</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
-    <style>
-        body {
-            background-color: #FFD700;
-            color: black;
-            font-family: 'Arial', sans-serif;
-        }
-        .container {
-            max-width: 1200px;
-        }
-        .logo {
-            max-width: 150px;
-            margin-bottom: 1rem;
-        }
-        .card {
-            background-color: rgba(255, 255, 255, 0.8);
-            border: none;
-            transition: transform 0.3s ease;
-        }
-        .card:hover {
-            transform: translateY(-5px);
-        }
-        .card-img-top {
-            height: 150px;
-            object-fit: cover;
-        }
-        .btn-custom {
-            background-color: green;
-            color: #ffffff;
-            border: none;
-            padding: 0.25rem 0.75rem;
-            font-size: 0.875rem;
-            font-weight: bold;
-            transition: background-color 0.3s ease;
-        }
-        .btn-custom:hover {
-            background-color: green;
-            color: #ffffff;
-        }
-        .footer {
-            background-color: rgba(139, 69, 19, 0.2);
-            padding: 1rem 0;
-            margin-top: 2rem;
-        }
-        .quote {
-            font-style: italic;
-            font-size: 1.2rem;
-            margin-bottom: 1rem;
-            color: black;
-        }
-        .cicerone-text {
-            font-weight: bold;
-            margin-bottom: 2rem;
-            color: black;
-        }
-        h1, h6 {
-            color: black;
-        }
-        .loader {
-            border: 8px solid #f3f3f3;
-            transform: translate(-50%, -50%);
-            border-top: 8px solid #8B0000;
-            border-radius: 50%;
-            width: 60px;
-            height: 60px;
-            animation: spin 1s linear infinite;
-            margin: 20px auto;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        .fullscreen-loader {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: #FFD700;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 9999;
-        }
-        .fullscreen-loader .loader {
-            width: 60px;
-            height: 60px;
-            border-width: 8px;
-        }
-        .content {
-            display: none;
-        }
-    </style>
-</head>
-<body>
-    <!-- Fullscreen loader -->
-    <div id="fullscreen-loader" class="fullscreen-loader">
-        <div class="loader"></div>
+{% extends "base.html" %}
+{% block title %}WineBuddy AI — Beer Selection{% endblock %}
+{% block body_class %}wb-theme-beer{% endblock %}
+{% block body %}
+<div id="fullscreen-loader" class="wb-loader-overlay">
+    <div class="wb-loader">
+        <div class="wb-loader-dots"><span></span><span></span><span></span></div>
+        <span class="wb-loader-label">Finding beer styles</span>
     </div>
+</div>
 
-    <!-- Content (initially hidden) -->
-    <div id="content" class="content">
-        <div class="container py-5">
-            <header class="text-center mb-5">
-                <img id="logo-img" src="" alt="WineBuddy Logo" class="logo">
-                <p id="tagline1" class="quote">"Life is too short to drink bad beer" (variant von Goethe)</p>
-                <p id="tagline2" class="cicerone-text">Top Tog Cicerone - find me a great beer</p>
-            </header>
-
-            <div class="row g-4" id="beer-cards-container"></div>
+<div id="content" class="wb-page wb-page-wide wb-hidden">
+    <header class="wb-header">
+        <div class="wb-brand">
+            <div class="wb-logo-wrap">
+                <img id="logo-img" src="{{ url_for('static', filename='images/logo.png') }}" alt="Top Dog Sommi" class="wb-logo">
+            </div>
         </div>
-    </div>
+        <p id="tagline1" class="wb-quote"></p>
+        <p id="tagline2" class="wb-subtitle"></p>
+    </header>
+    <div class="wb-card-grid wb-card-grid-compact" id="beer-cards-container"></div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+    const fullscreenLoader = document.getElementById('fullscreen-loader');
+    const content = document.getElementById('content');
+    const beerCardsContainer = document.getElementById('beer-cards-container');
+    const defaultLoaderLabel = 'Finding beer styles';
 
-    <script>
-        document.addEventListener("DOMContentLoaded", function() {
-            const fullscreenLoader = document.getElementById('fullscreen-loader');
-            const content = document.getElementById('content');
-            const beerCardsContainer = document.getElementById('beer-cards-container');
+    function showBeerPage() {
+        fullscreenLoader.classList.add('wb-hidden');
+        content.classList.remove('wb-hidden');
+        const loaderLabel = fullscreenLoader.querySelector('.wb-loader-label');
+        if (loaderLabel) {
+            loaderLabel.textContent = defaultLoaderLabel;
+        }
+    }
 
-            fetch('/beers')
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Network response was not ok');
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    if (data.query_beer_logo[0].logo_img_urlbb_txt) {
-                        document.getElementById('logo-img').src = data.query_beer_logo[0].logo_img_urlbb_txt;
-                    }
+    window.addEventListener('pageshow', function () {
+        if (beerCardsContainer.children.length > 0) {
+            showBeerPage();
+        }
+    });
 
-                    document.getElementById('tagline1').textContent = data.query_beer_pairings[0].BEER_HEADING;
-                    document.getElementById('tagline2').textContent = data.query_beer_pairings[0].BEER_DESCRIPTION;
+    document.addEventListener("DOMContentLoaded", function() {
+        fetch('/beers')
+            .then(response => {
+                if (!response.ok) throw new Error('Network response was not ok');
+                return response.json();
+            })
+            .then(data => {
+                document.getElementById('tagline1').textContent = data.query_beer_pairings[0].BEER_HEADING;
+                document.getElementById('tagline2').textContent = data.query_beer_pairings[0].BEER_DESCRIPTION;
+                beerCardsContainer.innerHTML = '';
 
-                    beerCardsContainer.innerHTML = '';
+                const capitalizeFirstLetter = (string) =>
+                    string.charAt(0).toUpperCase() + string.slice(1).toLowerCase();
 
-                    const capitalizeFirstLetter = (string) => {
-                        return string.charAt(0).toUpperCase() + string.slice(1).toLowerCase();
-                    };
-
-                    data.beers_country.forEach(beer => {
-                        const beerName = capitalizeFirstLetter(beer.NAME);
-                        const beerCard = `
-                            <div class="col-6 col-md-3">
-                                <div class="card h-100 text-center">
-                                    <img src="${beer.IMG_URLBB_TXT}" alt="${beerName}" class="card-img-top">
-                                    <div class="card-body">
-                                        <p class="card-text small">${beerName}</p>
-                                        <a class="btn btn-custom btn-sm" onclick="continueTobeer('${beer.AI_CSTMR_NAME}')">Continue</a>
-                                    </div>
-                                </div>
+                data.beers_country.forEach(beer => {
+                    const beerName = capitalizeFirstLetter(beer.NAME);
+                    beerCardsContainer.innerHTML += `
+                        <article class="wb-card">
+                            <div class="wb-card-media">
+                                <img src="${beer.IMG_URLBB_TXT}" alt="${beerName}" class="wb-card-img">
                             </div>
-                        `;
-                        beerCardsContainer.innerHTML += beerCard;
-                    });
-
-                    fullscreenLoader.style.display = 'none';
-                    content.style.display = 'block';
-                })
-                .catch(error => {
-                    console.error('There was a problem with the fetch operation:', error);
-                    fullscreenLoader.style.display = 'none';
-                    content.style.display = 'block';
-                    beerCardsContainer.innerHTML = '<p class="text-center">Error loading beers. Please try again later.</p>';
+                            <div class="wb-card-body">
+                                <p class="wb-card-label">${beerName}</p>
+                                <button type="button" class="wb-btn wb-btn-primary wb-btn-sm" onclick="continueTobeer('${beer.AI_CSTMR_NAME}')">Continue</button>
+                            </div>
+                        </article>`;
                 });
-        });
 
-        function slugify(text) {
-            return text.toString().toLowerCase().trim()
-                .replace(/\s+/g, '-')
-                .replace(/[^\w\-]+/g, '')
-                .replace(/\-\-+/g, '-')
-                .replace(/^-+/, '')
-                .replace(/-+$/, '');
+                fullscreenLoader.classList.add('wb-hidden');
+                content.classList.remove('wb-hidden');
+            })
+            .catch(() => {
+                showBeerPage();
+                beerCardsContainer.innerHTML = '<p class="wb-error-text">Error loading beers. Please try again later.</p>';
+            });
+    });
+
+    function slugify(text) {
+        return text.toString().toLowerCase().trim()
+            .replace(/\s+/g, '-')
+            .replace(/[^\w\-]+/g, '')
+            .replace(/\-\-+/g, '-')
+            .replace(/^-+/, '')
+            .replace(/-+$/, '');
+    }
+
+    function continueTobeer(aiCstmrName) {
+        const loaderLabel = fullscreenLoader.querySelector('.wb-loader-label');
+        if (loaderLabel) {
+            loaderLabel.textContent = 'Opening pairing assistant';
         }
-
-        function continueTobeer(aiCstmrName) {
-            window.location.href = `/chat/${slugify(aiCstmrName)}`;
-        }
-    </script>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-
-</body>
-</html>
+        fullscreenLoader.classList.remove('wb-hidden');
+        content.classList.add('wb-hidden');
+        window.location.href = `/chat/${slugify(aiCstmrName)}`;
+    }
+</script>
+{% endblock %}

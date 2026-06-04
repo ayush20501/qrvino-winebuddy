@@ -6,6 +6,8 @@ from bs4 import BeautifulSoup
 import os
 import logging
 import base64
+import time
+import json
 
 customers_bp = Blueprint('customers', __name__)
 
@@ -74,6 +76,7 @@ def show_image(slug):
 
                 if meat_cut_ind == 'Y':
                     second_line_from_database = re.sub(r'\*([^\*]+)\*', make_clickable, second_line_from_database)
+                session['theme_color'] = 'Y'
                 return render_template('customer_chat.html', image_data=image_data_base64, first_line=first_line, second_line=second_line_from_database,customer_name=page_name, color = "Y", options = options_list, rstrnt_ind=rstrnt_ind, prime_ind=prime_ind)
             else:
                 return {'page_name': page_name}
@@ -108,6 +111,7 @@ def show_image(slug):
                     matches_list = re.findall(r'\*([^\*]+)\*', second_line_from_database)
 
                 matches_list = sorted(matches_list)
+                session['theme_color'] = 'G'
                 return render_template('customer_chat.html',intro_text=intro_text, matches_list = matches_list,image_data=image_data_base64, first_line=first_line, second_line=second_line_from_database,customer_name=page_name, color = "G", options = options_list, rstrnt_ind=rstrnt_ind, prime_ind=prime_ind)
             else:
                 return {'page_name': page_name}
@@ -148,6 +152,7 @@ def show_image(slug):
                     intro_text = intro_text_match.group(1)+":" if intro_text_match else ""
                     matches_list = re.findall(r'\*([^\*]+)\*', second_line_from_database)
                 matches_list = sorted(matches_list)
+                session['theme_color'] = 'N'
                 return render_template('customer_chat.html',intro_text=intro_text, matches_list = matches_list, ai_cstmr_key = ai_cstmr_key, image_data=image_data_base64,image_url = image_url,
                 first_line=first_line, second_line=second_line_from_database,customer_name=page_name, color = "N", options = options_list, rstrnt_ind=rstrnt_ind, prime_ind=prime_ind)
             else:
@@ -192,9 +197,68 @@ def get_customer_recommendations():
         cstmr_result = cursor.fetchone()
         prompt_result = str(cstmr_result[prompt_column]) if cstmr_result else ""
 
+        theme_color = session.get('theme_color', 'N')
+
+        if theme_color == 'G':
+            beer_pairings = get_beer_pairings(prompt_result, user_input)
+            if not beer_pairings:
+                return "No response from chatbot"
+            cursor.execute("SELECT VRTL_NM,VRTL_KEY FROM ai_vrtl")
+            beer_varietals = cursor.fetchall()
+            headers = ["Beer Style Name", "Flavor Profile", "Pairing Notes", "Best Glass", "Best Temperature"]
+            html_table = "<table>\n<thead>\n" + "".join(f"<th>{h}</th>\n" for h in headers) + "\n</thead><tbody>\n"
+            for p in beer_pairings:
+                name = (p.get("name") or "").strip()
+                matched = next((item for item in beer_varietals if item['VRTL_NM'].strip().lower() == name.lower()), None)
+                name_cell = f'<a href="/customer/stores?key={matched["VRTL_KEY"]}&testflag=1">{matched["VRTL_NM"]}</a>' if matched else name
+                profile = f"Flavor: {p.get('flavor', '')} Aroma: {p.get('aroma', '')} Bitterness: {p.get('bitterness', '')} ABV: {p.get('abv', '')}"
+                html_table += (
+                    "<tr>\n"
+                    f"<td>{name_cell}</td>\n"
+                    f"<td>{profile}</td>\n"
+                    f"<td>{p.get('pairing_notes', '')}</td>\n"
+                    f"<td>{p.get('best_glass', '')}</td>\n"
+                    f"<td>{p.get('best_temp', '')}</td>\n"
+                    "</tr>\n"
+                )
+            html_table += "</tbody>\n</table>"
+            return render_template("recommendations_table.html", token=1, var=html_table, rstrnt_ind=rstrnt_ind, no_wine_beer_ind=no_wine_beer_ind, color=theme_color)
+
+        if theme_color == 'N':
+            wine_pairings = get_wine_pairings(prompt_result, user_input)
+            if not wine_pairings:
+                return "No response from chatbot"
+            cursor.execute("SELECT VRTL_NM,VRTL_KEY FROM ai_vrtl")
+            wine_varietals = cursor.fetchall()
+            headers = ["Wine Style Name", "Flavor Profile", "Pairing Notes", "Best Glass", "Best Serving Temperature"]
+            html_table = "<table>\n<thead>\n" + "".join(f"<th>{h}</th>\n" for h in headers) + "\n</thead><tbody>\n"
+            for p in wine_pairings:
+                name = (p.get("name") or "").strip()
+                matched = next((item for item in wine_varietals if item['VRTL_NM'].strip().lower() == name.lower()), None)
+                name_cell = f'<a href="/customer/stores?key={matched["VRTL_KEY"]}&testflag=1">{matched["VRTL_NM"]}</a>' if matched else name
+                profile = f"Flavor: {p.get('flavor', '')} Aroma: {p.get('aroma', '')} Tannins: {p.get('tannins', '')} Taste: {p.get('taste', '')} ABV: {p.get('abv', '')}"
+                html_table += (
+                    "<tr>\n"
+                    f"<td>{name_cell}</td>\n"
+                    f"<td>{profile}</td>\n"
+                    f"<td>{p.get('pairing_notes', '')}</td>\n"
+                    f"<td>{p.get('best_glass', '')}</td>\n"
+                    f"<td>{p.get('best_temp', '')}</td>\n"
+                    "</tr>\n"
+                )
+            html_table += "</tbody>\n</table>"
+            return render_template("recommendations_table.html", token=1, var=html_table, rstrnt_ind=rstrnt_ind, no_wine_beer_ind=no_wine_beer_ind, color=theme_color)
+
+        table_instruction = ("Please return response in tabular format with exactly 5 columns: "
+                             "Wine Style Name | Flavor Profile | Pairing Notes | Best Glass | Best Serving Temperature. "
+                             "Flavor Profile column: Flavor: <value>, Aroma: <value>, Tannins: <value>, Taste: <value>, ABV: <value>. "
+                             "Pairing Notes column: 2-3 sentences explaining why this wine pairs well with the dish. "
+                             "Best Glass column: only the glass type. "
+                             "Best Serving Temperature column: only the serving temperature.")
+
         conversation = [
-            {"role": "system", "content": "You are WineBuddy,and BeerBudy the Virtual Sommelier for wine and beer.You can recommend wine or beer as asked"},
-            {"role": "system", "content": f'{prompt_result}? {user_input} also Please return response in tabular format'},
+            {"role": "system", "content": "You are WineBuddy and BeerBuddy the Virtual Sommelier for wine and beer. You can recommend wine or beer as asked. " + table_instruction},
+            {"role": "user", "content": f'{prompt_result}? {user_input}'},
         ]
         chatbot_response = get_chatbot_response(conversation)
         matched_varietals = []
@@ -213,7 +277,7 @@ def get_customer_recommendations():
                 start_index = next((index for index, line in enumerate(lines) if '|' in line), None)
                 if start_index is not None:
                     headers = [header.strip() for header in lines[start_index].split('|') if header.strip()]
-                    data_lines = [line.strip() for line in lines[start_index + 2:-1]]
+                    data_lines = [line.strip() for line in lines[start_index + 2:]]
                     target_words = ["regions", "countries", "regions/countries","countries/regions"]
                     for i, header in enumerate(headers, 1):
                         for word in target_words:
@@ -254,14 +318,14 @@ def get_customer_recommendations():
                     html_table += "".join([f"<td>{column}</td>\n" for column in columns])
                     html_table += "</tr>\n"
                 html_table += "</tbody>\n</table>"
-                return render_template("recommendations_table.html", token=1,var=html_table, rstrnt_ind=rstrnt_ind, no_wine_beer_ind=no_wine_beer_ind)
+                return render_template("recommendations_table.html", token=1, var=html_table, rstrnt_ind=rstrnt_ind, no_wine_beer_ind=no_wine_beer_ind, color=session.get('theme_color', 'N'))
             else:
                 formatted_response = chatbot_response
                 for varietal, varietal_key in matched_varietals:
                     varietal_link = f'<a href="/customer/stores?key={varietal_key}">{varietal}</a>'
                     formatted_response = formatted_response.replace(varietal, varietal_link, 1)
                 paragraphs_with_links = formatted_response.split('\n\n')
-                return render_template("recommendations_table.html",paragraphs_with_links=paragraphs_with_links, rstrnt_ind=rstrnt_ind, no_wine_beer_ind=no_wine_beer_ind)
+                return render_template("recommendations_table.html", paragraphs_with_links=paragraphs_with_links, rstrnt_ind=rstrnt_ind, no_wine_beer_ind=no_wine_beer_ind, color=session.get('theme_color', 'N'))
         else:
             return "No response from chatbot"
     except Exception as e:
@@ -273,11 +337,121 @@ def get_customer_recommendations():
             db_connection.close()
 
 def get_chatbot_response(messages):
-    response =openai.ChatCompletion.create(
-    model="gpt-3.5-turbo",
-    messages=messages
-    )
-    return response.choices[0].message["content"]
+    for attempt in range(3):
+        try:
+            response = openai.ChatCompletion.create(
+                model="gpt-3.5-turbo",
+                messages=messages,
+                temperature=0
+            )
+            return response.choices[0].message["content"]
+        except Exception as e:
+            logging.error(f"OpenAI attempt {attempt + 1} failed: {type(e).__name__}: {e}")
+            if attempt < 2:
+                time.sleep(1)
+    return None
+
+def get_beer_pairings(prompt_result, user_input):
+    functions = [{
+        "name": "return_beer_pairings",
+        "description": "Return a list of beer pairing recommendations for the requested dish.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "pairings": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "name": {"type": "string", "description": "Beer style name"},
+                            "flavor": {"type": "string"},
+                            "aroma": {"type": "string"},
+                            "bitterness": {"type": "string"},
+                            "abv": {"type": "string"},
+                            "pairing_notes": {"type": "string", "description": "2-3 sentences on why this beer pairs well with the dish"},
+                            "best_glass": {"type": "string"},
+                            "best_temp": {"type": "string"}
+                        },
+                        "required": ["name", "flavor", "aroma", "bitterness", "abv", "pairing_notes", "best_glass", "best_temp"]
+                    }
+                }
+            },
+            "required": ["pairings"]
+        }
+    }]
+    messages = [
+        {"role": "system", "content": "You are BeerBuddy, a virtual beer sommelier. Recommend suitable beers and return them using the return_beer_pairings function."},
+        {"role": "user", "content": f'{prompt_result}? {user_input}'}
+    ]
+    for attempt in range(3):
+        try:
+            response = openai.ChatCompletion.create(
+                model="gpt-3.5-turbo",
+                messages=messages,
+                functions=functions,
+                function_call={"name": "return_beer_pairings"},
+                temperature=0
+            )
+            arguments = response.choices[0].message["function_call"]["arguments"]
+            return json.loads(arguments).get("pairings", [])
+        except Exception as e:
+            logging.error(f"OpenAI beer attempt {attempt + 1} failed: {type(e).__name__}: {e}")
+            if attempt < 2:
+                time.sleep(1)
+    return None
+
+def get_wine_pairings(prompt_result, user_input):
+    functions = [{
+        "name": "return_wine_pairings",
+        "description": "Return a list of wine pairing recommendations for the requested dish.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "pairings": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "name": {"type": "string", "description": "Wine style or varietal name"},
+                            "flavor": {"type": "string"},
+                            "aroma": {"type": "string"},
+                            "tannins": {"type": "string"},
+                            "taste": {"type": "string"},
+                            "abv": {"type": "string"},
+                            "pairing_notes": {"type": "string", "description": "2-3 sentences on why this wine pairs well with the dish"},
+                            "best_glass": {"type": "string"},
+                            "best_temp": {"type": "string"}
+                        },
+                        "required": ["name", "flavor", "aroma", "tannins", "taste", "abv", "pairing_notes", "best_glass", "best_temp"]
+                    }
+                }
+            },
+            "required": ["pairings"]
+        }
+    }]
+    messages = [
+        {"role": "system", "content": "You are WineBuddy, a virtual wine sommelier. Recommend suitable wines and return them using the return_wine_pairings function."},
+        {"role": "user", "content": f'{prompt_result}? {user_input}'}
+    ]
+    for attempt in range(3):
+        try:
+            response = openai.ChatCompletion.create(
+                model="gpt-3.5-turbo",
+                messages=messages,
+                functions=functions,
+                function_call={"name": "return_wine_pairings"},
+                temperature=0
+            )
+            arguments = response.choices[0].message["function_call"]["arguments"]
+            return json.loads(arguments).get("pairings", [])
+        except Exception as e:
+            logging.error(f"OpenAI wine attempt {attempt + 1} failed: {type(e).__name__}: {e}")
+            if attempt < 2:
+                time.sleep(1)
+    return None
+
+def _store_selection_template():
+    return "store_selection_modal.html" if request.args.get("modal") == "1" else "store_selection.html"
 
 @customers_bp.route('/customer/stores')
 def show_customer_stores():
@@ -295,7 +469,7 @@ def show_customer_stores():
                 query="""SELECT distinct WINE_SELR.* FROM CSTMR_WIN_SELR JOIN ai_cstmr ON CSTMR_WIN_SELR.AI_CSTMR_KEY = ai_cstmr.AI_CSTMR_KEY JOIN WINE_SELR ON CSTMR_WIN_SELR.WIN_SELR_KEY = WINE_SELR.WINE_SELR_KEY WHERE ai_cstmr.AI_CSTMR_KEY = %s AND CSTMR_WIN_SELR.ChatGPT_ACTV_IND = 'Y'"""
                 cursor.execute(query, (cstmr_key,))
                 restaurants = cursor.fetchall()
-                return render_template("store_selection.html", restr=restaurants, vrtl_key=ai_vrtl_key)
+                return render_template(_store_selection_template(), restr=restaurants, vrtl_key=ai_vrtl_key)
             except Exception as e:
                 return f"Error1: {str(e)}"
             finally:
@@ -314,7 +488,7 @@ def show_customer_stores():
                 query="""SELECT distinct WINE_SELR.* FROM CSTMR_WIN_SELR JOIN ai_cstmr ON CSTMR_WIN_SELR.AI_CSTMR_KEY = ai_cstmr.AI_CSTMR_KEY JOIN WINE_SELR ON CSTMR_WIN_SELR.WIN_SELR_KEY = WINE_SELR.WINE_SELR_KEY WHERE ai_cstmr.AI_CSTMR_KEY = %s AND CSTMR_WIN_SELR.ChatGPT_ACTV_IND = 'Y'"""
                 cursor.execute(query, (cstmr_key,))
                 restaurants = cursor.fetchall()
-                return render_template("store_selection.html", restr=restaurants,reg_key=ai_reg_key,vrtl=aivrtlkey)
+                return render_template(_store_selection_template(), restr=restaurants,reg_key=ai_reg_key,vrtl=aivrtlkey)
             except Exception as e:
                 return f"Error2: {str(e)}"
             finally:
@@ -333,7 +507,7 @@ def show_customer_stores():
                 query="""SELECT distinct WINE_SELR.* FROM CSTMR_WIN_SELR JOIN ai_cstmr ON CSTMR_WIN_SELR.AI_CSTMR_KEY = ai_cstmr.AI_CSTMR_KEY JOIN WINE_SELR ON CSTMR_WIN_SELR.WIN_SELR_KEY = WINE_SELR.WINE_SELR_KEY WHERE ai_cstmr.AI_CSTMR_KEY = %s AND CSTMR_WIN_SELR.ChatGPT_ACTV_IND = 'Y'"""
                 cursor.execute(query, (cstmr_key,))
                 restaurants = cursor.fetchall()
-                return render_template("store_selection.html", restr=restaurants, vrtl_key=ai_vrtl_key)
+                return render_template(_store_selection_template(), restr=restaurants, vrtl_key=ai_vrtl_key)
             except Exception as e:
                 return f"Error3: {str(e)}"
             finally:

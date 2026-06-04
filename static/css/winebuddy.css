@@ -1,0 +1,981 @@
+:root {
+    --wb-font: "Plus Jakarta Sans", system-ui, sans-serif;
+    --wb-bg-1: #1a0c10;
+    --wb-bg-2: #2a1218;
+    --wb-bg-3: #1f1614;
+    --wb-text: #faf6f0;
+    --wb-text-muted: #c8bdb0;
+    --wb-wine: #9e1b32;
+    --wb-wine-deep: #6b1224;
+    --wb-wine-soft: rgba(158, 27, 50, 0.28);
+    --wb-gold: #d4af37;
+    --wb-gold-light: #e8c96a;
+    --wb-gold-soft: rgba(212, 175, 55, 0.22);
+    --wb-accent: #d4af37;
+    --wb-accent-soft: rgba(212, 175, 55, 0.2);
+    --wb-success: #6b9e7a;
+    --wb-glass: rgba(255, 245, 235, 0.06);
+    --wb-glass-strong: rgba(255, 245, 235, 0.1);
+    --wb-border: rgba(212, 175, 55, 0.22);
+    --wb-input-bg: #fff9f2;
+    --wb-input-text: #2a1818;
+    --wb-radius: 16px;
+    --wb-radius-lg: 22px;
+    --wb-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
+    --wb-transition: 0.22s ease;
+}
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body.wb-body {
+    margin: 0;
+    min-height: 100vh;
+    font-family: var(--wb-font);
+    color: var(--wb-text);
+    background: linear-gradient(160deg, var(--wb-bg-1) 0%, var(--wb-bg-2) 42%, var(--wb-bg-3) 100%);
+    line-height: 1.55;
+}
+
+body.wb-body::before,
+body.wb-body::after {
+    content: "";
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(90px);
+    pointer-events: none;
+    z-index: 0;
+}
+
+body.wb-body::before {
+    width: 380px;
+    height: 380px;
+    top: -100px;
+    right: -60px;
+    background: radial-gradient(circle, var(--wb-gold-soft), transparent 72%);
+}
+
+body.wb-body::after {
+    width: 420px;
+    height: 420px;
+    bottom: -120px;
+    left: -80px;
+    background: radial-gradient(circle, var(--wb-wine-soft), transparent 72%);
+}
+
+body.wb-theme-green {
+    --wb-bg-1: #0e1612;
+    --wb-bg-2: #142019;
+    --wb-bg-3: #182820;
+    --wb-wine: #3d8b6a;
+    --wb-wine-deep: #2a6349;
+    --wb-wine-soft: rgba(61, 139, 106, 0.25);
+    --wb-accent: #7ec9a0;
+    --wb-accent-soft: rgba(126, 201, 160, 0.2);
+    --wb-gold: #b8d4a8;
+    --wb-gold-soft: rgba(184, 212, 168, 0.18);
+    --wb-border: rgba(126, 201, 160, 0.25);
+}
+
+body.wb-theme-beer {
+    --wb-bg-1: #1a1208;
+    --wb-bg-2: #261a0c;
+    --wb-bg-3: #302210;
+    --wb-text: #faf6f0;
+    --wb-text-muted: #d8c9a8;
+    --wb-wine: #c47a14;
+    --wb-wine-deep: #8f560c;
+    --wb-wine-soft: rgba(196, 122, 20, 0.28);
+    --wb-gold: #e8b84a;
+    --wb-gold-light: #f0cc6e;
+    --wb-gold-soft: rgba(232, 184, 74, 0.25);
+    --wb-accent: #e8b84a;
+    --wb-accent-soft: rgba(232, 184, 74, 0.22);
+    --wb-glass: rgba(255, 248, 235, 0.07);
+    --wb-glass-strong: rgba(255, 248, 235, 0.11);
+    --wb-border: rgba(232, 184, 74, 0.28);
+    --wb-input-bg: #fff9f2;
+    --wb-input-text: #2a1e10;
+}
+
+body.wb-theme-beer::before {
+    background: radial-gradient(circle, var(--wb-gold-soft), transparent 72%);
+}
+
+body.wb-theme-beer::after {
+    background: radial-gradient(circle, var(--wb-wine-soft), transparent 72%);
+}
+
+.wb-page {
+    position: relative;
+    z-index: 1;
+    width: min(1120px, 100%);
+    margin: 0 auto;
+    padding: 2rem 1.25rem 3rem;
+}
+
+.wb-page-narrow {
+    width: min(720px, 100%);
+}
+
+.wb-page-wide {
+    width: min(1200px, 100%);
+}
+
+.wb-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.wb-brand {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.85rem;
+    margin-bottom: 1.25rem;
+}
+
+.wb-logo-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.25rem 0;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+}
+
+.wb-logo {
+    display: block;
+    width: min(300px, 90vw);
+    height: auto;
+    max-height: 80px;
+    object-fit: contain;
+    margin: 0;
+}
+
+.wb-tagline {
+    margin: 0 auto;
+    max-width: 42rem;
+    font-size: clamp(1rem, 2.4vw, 1.15rem);
+    color: var(--wb-text-muted);
+    font-weight: 500;
+}
+
+.wb-tagline strong,
+.wb-intro-line {
+    display: block;
+    color: var(--wb-text);
+    font-size: clamp(1.05rem, 2.6vw, 1.25rem);
+    font-weight: 700;
+    margin-bottom: 0.35rem;
+}
+
+.wb-quote {
+    font-style: italic;
+    font-size: 1.05rem;
+    color: var(--wb-gold);
+    margin-bottom: 0.5rem;
+}
+
+.wb-subtitle {
+    font-weight: 600;
+    color: var(--wb-text-muted);
+    margin-bottom: 1.5rem;
+}
+
+.wb-input-section {
+    margin: 0 auto 2rem;
+    max-width: 36rem;
+}
+
+.wb-input-wrap {
+    display: flex;
+    align-items: stretch;
+    gap: 0.65rem;
+    padding: 0.45rem;
+    background: var(--wb-glass);
+    border: 1px solid var(--wb-border);
+    border-radius: var(--wb-radius-lg);
+    backdrop-filter: blur(14px);
+    box-shadow: var(--wb-shadow);
+}
+
+.wb-input,
+.wb-select {
+    flex: 1;
+    width: 100%;
+    border: none;
+    background: var(--wb-input-bg);
+    color: var(--wb-input-text);
+    padding: 0.95rem 1.1rem;
+    font-size: 1rem;
+    font-family: var(--wb-font);
+    border-radius: calc(var(--wb-radius-lg) - 6px);
+    outline: none;
+    transition: box-shadow var(--wb-transition);
+}
+
+.wb-input:focus,
+.wb-select:focus {
+    box-shadow: 0 0 0 3px var(--wb-accent-soft);
+}
+
+.wb-input::placeholder {
+    color: #8a7a72;
+}
+
+.wb-select {
+    appearance: none;
+    cursor: pointer;
+    margin-bottom: 1rem;
+}
+
+.wb-btn-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 3.25rem;
+    border: none;
+    border-radius: calc(var(--wb-radius-lg) - 6px);
+    background: linear-gradient(145deg, var(--wb-wine), var(--wb-wine-deep));
+    color: #fff;
+    cursor: pointer;
+    transition: transform var(--wb-transition), box-shadow var(--wb-transition);
+}
+
+.wb-btn-icon:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 18px rgba(158, 27, 50, 0.4);
+}
+
+.wb-card-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+@media (min-width: 600px) {
+    .wb-card-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+.wb-card-grid-compact {
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 1.35rem;
+    max-width: none;
+}
+
+.wb-card {
+    background: var(--wb-glass);
+    border: 1px solid var(--wb-border);
+    border-radius: var(--wb-radius-lg);
+    overflow: hidden;
+    backdrop-filter: blur(12px);
+    box-shadow: var(--wb-shadow);
+    transition: transform var(--wb-transition), border-color var(--wb-transition), box-shadow var(--wb-transition);
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.wb-card:hover {
+    transform: translateY(-4px);
+    border-color: rgba(212, 175, 55, 0.45);
+    box-shadow: 0 20px 48px rgba(0, 0, 0, 0.45);
+}
+
+.wb-card-media {
+    position: relative;
+    width: 100%;
+    height: 210px;
+    flex-shrink: 0;
+    overflow: hidden;
+    background: var(--wb-bg-2);
+}
+
+.wb-card-grid-compact .wb-card-media {
+    height: 185px;
+}
+
+.wb-card-grid-compact .wb-card-body {
+    padding: 1.15rem 1.2rem 1.25rem;
+    gap: 0.9rem;
+    flex: 1;
+    min-height: 0;
+}
+
+.wb-card-grid-compact .wb-card-label {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 2.9em;
+    font-size: 1rem;
+    line-height: 1.45;
+}
+
+.wb-card-grid-compact .wb-card-body .wb-btn {
+    margin-top: auto;
+    flex-shrink: 0;
+    width: 100%;
+    padding: 0.65rem 1.3rem;
+    font-size: 0.9rem;
+}
+
+.wb-card-grid:not(.wb-card-grid-compact) .wb-card-body {
+    padding: 1.25rem 1.35rem 1.4rem;
+    gap: 0.8rem;
+    min-height: 8rem;
+}
+
+.wb-card-grid:not(.wb-card-grid-compact) .wb-card-title {
+    font-size: 1.05rem;
+    line-height: 1.35;
+}
+
+.wb-card-grid:not(.wb-card-grid-compact) .wb-card-text {
+    font-size: 0.9rem;
+    margin-bottom: 0.15rem;
+}
+
+.wb-card-media .wb-card-img {
+    position: absolute;
+    inset: 0;
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center center;
+}
+
+.wb-card-body {
+    padding: 1.25rem;
+    text-align: center;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+}
+
+.wb-card-title {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--wb-text);
+}
+
+.wb-card-text {
+    margin: 0;
+    font-size: 0.92rem;
+    color: var(--wb-text-muted);
+    flex: 1;
+}
+
+.wb-card-label {
+    margin: 0;
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--wb-text);
+}
+
+.wb-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    padding: 0.7rem 1.35rem;
+    border: none;
+    border-radius: 999px;
+    font-family: var(--wb-font);
+    font-size: 0.95rem;
+    font-weight: 700;
+    text-decoration: none;
+    cursor: pointer;
+    transition: transform var(--wb-transition), box-shadow var(--wb-transition), opacity var(--wb-transition);
+}
+
+.wb-btn-primary {
+    color: #1f1008;
+    background: linear-gradient(145deg, var(--wb-gold-light), var(--wb-gold));
+    box-shadow: 0 8px 24px rgba(212, 175, 55, 0.35);
+}
+
+.wb-btn-primary:hover {
+    color: #1f1008;
+    transform: translateY(-2px);
+    box-shadow: 0 12px 28px rgba(212, 175, 55, 0.45);
+}
+
+.wb-btn-secondary {
+    color: var(--wb-text);
+    background: transparent;
+    border: 1.5px solid var(--wb-border);
+    box-shadow: none;
+}
+
+.wb-btn-secondary:hover {
+    color: var(--wb-gold-light);
+    background: var(--wb-glass);
+    border-color: var(--wb-gold);
+    transform: translateY(-2px);
+}
+
+.wb-btn-sm {
+    padding: 0.45rem 1rem;
+    font-size: 0.82rem;
+}
+
+.wb-btn-block {
+    width: 100%;
+}
+
+.wb-panel {
+    background: var(--wb-glass-strong);
+    border: 1px solid var(--wb-border);
+    border-radius: var(--wb-radius-lg);
+    padding: 1.5rem;
+    backdrop-filter: blur(16px);
+    box-shadow: var(--wb-shadow);
+}
+
+.wb-panel-title {
+    margin: 0 0 1.25rem;
+    font-size: 1.35rem;
+    font-weight: 700;
+    text-align: center;
+    color: var(--wb-text);
+}
+
+.wb-selection-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+}
+
+.wb-selection-item {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    padding: 0.9rem 1rem;
+    border-radius: var(--wb-radius);
+    border: 1px solid var(--wb-border);
+    background: rgba(255, 245, 235, 0.04);
+    cursor: pointer;
+    transition: background var(--wb-transition), border-color var(--wb-transition);
+}
+
+.wb-selection-item:hover {
+    background: var(--wb-accent-soft);
+    border-color: rgba(212, 175, 55, 0.45);
+}
+
+.wb-selection-item input[type="radio"] {
+    width: 1.1rem;
+    height: 1.1rem;
+    accent-color: var(--wb-gold);
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.wb-selection-item label {
+    margin: 0;
+    flex: 1;
+    cursor: pointer;
+    font-weight: 600;
+    color: var(--wb-text);
+}
+
+.wb-options-panel {
+    background: linear-gradient(165deg, rgba(107, 18, 36, 0.35), rgba(42, 24, 20, 0.5));
+    border: 1px solid var(--wb-border);
+    border-radius: var(--wb-radius-lg);
+    overflow: hidden;
+    box-shadow: var(--wb-shadow);
+}
+
+body.wb-theme-green .wb-options-panel {
+    background: linear-gradient(165deg, rgba(42, 99, 73, 0.35), rgba(20, 32, 25, 0.5));
+}
+
+body.wb-theme-beer .wb-options-panel {
+    background: linear-gradient(165deg, rgba(143, 86, 12, 0.35), rgba(48, 34, 16, 0.5));
+}
+
+.wb-options-scroll {
+    max-height: 180px;
+    overflow-y: auto;
+    padding: 0.35rem 0.85rem;
+    scroll-behavior: smooth;
+}
+
+.wb-options-scroll::-webkit-scrollbar {
+    width: 6px;
+}
+
+.wb-options-scroll::-webkit-scrollbar-thumb {
+    background: rgba(212, 175, 55, 0.35);
+    border-radius: 999px;
+}
+
+.wb-option-row {
+    padding: 0.75rem 0;
+    border-bottom: 1px dashed rgba(212, 175, 55, 0.2);
+}
+
+.wb-option-row:last-child {
+    border-bottom: none;
+}
+
+.wb-option-row .form-check-label {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    gap: 0.75rem;
+    cursor: pointer;
+    font-weight: 600;
+    color: var(--wb-text);
+}
+
+.wb-option-text {
+    flex: 1;
+    text-align: left;
+    font-size: 1rem;
+}
+
+.wb-option-row .form-check-input {
+    width: 1.1rem;
+    height: 1.1rem;
+    margin: 0;
+    accent-color: var(--wb-gold);
+    cursor: pointer;
+}
+
+.wb-scroll-arrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 2rem;
+    color: var(--wb-gold);
+    cursor: pointer;
+    opacity: 0.9;
+    transition: opacity var(--wb-transition);
+}
+
+.wb-scroll-arrow:hover {
+    opacity: 1;
+}
+
+.wb-page-chat {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 2rem 1.5rem 2.5rem;
+}
+
+.wb-chat-hero {
+    text-align: center;
+    margin-bottom: 2rem;
+    max-width: min(52rem, 92vw);
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.wb-chat-hero img {
+    max-height: clamp(180px, 24vh, 280px);
+    width: auto;
+    max-width: 100%;
+    margin-bottom: 1.25rem;
+    border-radius: var(--wb-radius-lg);
+    box-shadow: var(--wb-shadow);
+}
+
+.wb-chat-hero #colorText {
+    margin: 0;
+}
+
+.wb-chat-hero .wb-intro-line {
+    font-size: clamp(1.15rem, 2.8vw, 1.55rem);
+    margin-bottom: 0.5rem;
+}
+
+.wb-chat-hero .wb-tagline {
+    font-size: clamp(1rem, 2.2vw, 1.2rem);
+    max-width: none;
+}
+
+.wb-chat-form {
+    max-width: min(52rem, 92vw);
+    margin: 0 auto;
+    width: 100%;
+}
+
+.wb-chat-form .wb-input-wrap {
+    margin-bottom: 0.25rem;
+}
+
+.wb-chat-form .wb-input {
+    padding: 1.05rem 1.2rem;
+    font-size: clamp(1rem, 2vw, 1.1rem);
+}
+
+.wb-actions-row {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    margin-top: 1.5rem;
+}
+
+.wb-actions-continue {
+    display: flex;
+    align-items: stretch;
+}
+
+.wb-actions-continue .wb-btn {
+    width: 100%;
+    min-height: 3.5rem;
+    padding: 0.9rem 1.5rem;
+    font-size: clamp(0.95rem, 2vw, 1.05rem);
+}
+
+.wb-options-panel-compact .wb-options-scroll {
+    max-height: none;
+    padding: 0.65rem 1.15rem;
+}
+
+.wb-options-panel-compact .wb-option-row {
+    padding: 0.75rem 0;
+}
+
+.wb-page-chat .wb-option-text {
+    font-size: clamp(1rem, 2vw, 1.1rem);
+}
+
+.wb-page-chat .wb-btn-icon {
+    min-width: 3.5rem;
+}
+
+@media (min-width: 768px) {
+    .wb-page-chat {
+        padding: 2.5rem 2rem 3rem;
+    }
+
+    .wb-actions-row {
+        flex-direction: row;
+        align-items: stretch;
+        gap: 1.5rem;
+    }
+
+    .wb-options-panel {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+
+    .wb-actions-continue {
+        flex: 0 0 13rem;
+        align-items: center;
+    }
+
+    .wb-actions-continue .wb-btn {
+        width: 100%;
+        min-height: 100%;
+    }
+}
+
+.wb-recommendations {
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    padding: 1.5rem clamp(1rem, 3vw, 2.5rem) 2rem;
+    position: relative;
+    z-index: 1;
+}
+
+.wb-recommendations-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+}
+
+.wb-recommendations-header h2 {
+    margin: 0;
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--wb-text);
+}
+
+.wb-recommendations-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.65rem;
+}
+
+.wb-recommendations-body {
+    overflow-x: auto;
+}
+
+.wb-recommendations-body table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+}
+
+.wb-recommendations-body th,
+.wb-recommendations-body td {
+    padding: 1.1rem 1.35rem;
+    text-align: left;
+    vertical-align: top;
+    border-bottom: 1px solid var(--wb-border);
+    line-height: 1.65;
+}
+
+.wb-recommendations-body th {
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: var(--wb-text);
+    background: rgba(255, 245, 235, 0.04);
+    border-bottom-width: 2px;
+}
+
+.wb-recommendations-body td {
+    color: var(--wb-text-muted);
+}
+
+.wb-recommendations-body th:first-child,
+.wb-recommendations-body td:first-child {
+    width: 16%;
+    min-width: 130px;
+    font-weight: 700;
+    color: var(--wb-gold-light);
+}
+
+.wb-recommendations-body tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.wb-recommendations-body p {
+    margin-bottom: 1rem;
+    color: var(--wb-text-muted);
+    line-height: 1.7;
+}
+
+.wb-recommendations-body p:last-child {
+    margin-bottom: 0;
+}
+
+.wb-recommendations-body a {
+    color: var(--wb-gold-light);
+    font-weight: 600;
+    text-decoration: none;
+    border-bottom: 1px solid rgba(232, 201, 106, 0.45);
+}
+
+.wb-recommendations-body a:hover {
+    color: var(--wb-text);
+    border-bottom-color: var(--wb-text);
+}
+
+.wb-loader-overlay {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(160deg, var(--wb-bg-1), var(--wb-bg-2));
+    z-index: 9999;
+}
+
+.wb-loader {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+}
+
+.wb-loader-dots span {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: linear-gradient(145deg, var(--wb-gold), var(--wb-wine));
+    animation: wb-pulse 1.2s ease-in-out infinite;
+}
+
+.wb-loader-dots {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.wb-loader-dots span:nth-child(2) {
+    animation-delay: 0.15s;
+}
+
+.wb-loader-dots span:nth-child(3) {
+    animation-delay: 0.3s;
+}
+
+.wb-loader-label {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--wb-text-muted);
+    letter-spacing: 0.03em;
+}
+
+@keyframes wb-pulse {
+    0%,
+    80%,
+    100% {
+        transform: scale(0.65);
+        opacity: 0.45;
+    }
+    40% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.wb-hidden {
+    display: none !important;
+}
+
+.wb-center-page {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+    position: relative;
+    z-index: 1;
+}
+
+.wb-error-text {
+    text-align: center;
+    color: var(--wb-text-muted);
+    padding: 2rem;
+}
+
+body.wb-modal-open {
+    overflow: hidden;
+}
+
+.wb-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.25rem;
+}
+
+.wb-modal-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(10, 6, 8, 0.72);
+    backdrop-filter: blur(6px);
+}
+
+.wb-modal-dialog {
+    position: relative;
+    z-index: 1;
+    width: min(520px, 100%);
+    max-height: min(85vh, 640px);
+    overflow-y: auto;
+    margin: 0;
+    padding: 1.75rem 1.5rem 1.5rem;
+}
+
+.wb-modal-close {
+    position: absolute;
+    top: 0.85rem;
+    right: 0.85rem;
+    width: 2rem;
+    height: 2rem;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--wb-text-muted);
+    font-size: 1.5rem;
+    line-height: 1;
+    cursor: pointer;
+    transition: color var(--wb-transition), background var(--wb-transition);
+}
+
+.wb-modal-close:hover {
+    color: var(--wb-text);
+    background: var(--wb-glass);
+}
+
+.wb-modal-title {
+    margin: 0 0 1.25rem;
+    padding-right: 2rem;
+    font-size: 1.35rem;
+    font-weight: 700;
+    text-align: center;
+    color: var(--wb-text);
+}
+
+.wb-modal-loading {
+    margin: 0;
+    text-align: center;
+    color: var(--wb-text-muted);
+}
+
+.wb-recommendations-body table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: auto;
+}
+
+.wb-recommendations-body table th,
+.wb-recommendations-body table td {
+    padding: 0.85rem 1rem;
+    text-align: left;
+    vertical-align: top;
+    border-bottom: 1px solid var(--wb-border);
+    line-height: 1.6;
+    word-wrap: break-word;
+}
+
+.wb-recommendations-body table td {
+    color: var(--wb-text-muted);
+    font-weight: 400;
+}
+
+.wb-recommendations-body table th {
+    color: var(--wb-gold);
+    font-weight: 700;
+    font-size: 0.9rem;
+    border-bottom: 2px solid var(--wb-border);
+    white-space: nowrap;
+}
+
+.wb-recommendations-body table tr:last-child td {
+    border-bottom: none;
+}
+
+.wb-recommendations-body table td.wb-col-profile {
+    white-space: nowrap;
+    width: 1%;
+}
+
+.wb-recommendations-body table td.wb-col-notes {
+    font-style: italic;
+    color: var(--wb-text);
+}

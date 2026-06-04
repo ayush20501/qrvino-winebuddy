@@ -1,0 +1,21 @@
+<form method="POST" action="{{ url_for('redirect_external') }}">
+    {% if vrtl_key %}
+    <input type="hidden" name="vrtlkey" value="{{ vrtl_key }}">
+    {% elif reg_key %}
+    <input type="hidden" name="regkey" value="{{ reg_key }}">
+    <input type="hidden" name="vrtlkey" value="{{ vrtl }}">
+    {% elif key_value %}
+    <input type="hidden" name="vrtlkey" value="{{ key_value }}">
+    {% endif %}
+    <div class="wb-selection-list">
+        {% for restaurant in restr %}
+        <div class="wb-selection-item">
+            <input type="radio" name="selected_restaurant" id="store_{{ loop.index }}" value="{{ restaurant.WINE_SELR_KEY or restaurant.RSTRNT_KEY }}" {% if loop.first %}checked{% endif %}>
+            <label for="store_{{ loop.index }}">{{ restaurant.WINE_SELR_NM or restaurant.RSTRNT_NM }}</label>
+        </div>
+        {% endfor %}
+    </div>
+    <div class="mt-4">
+        <button type="submit" class="wb-btn wb-btn-primary wb-btn-block">Continue</button>
+    </div>
+</form>

@@ -1,0 +1,53 @@
+<script>
+(function () {
+    var modal = document.getElementById('wbStoreModal');
+    var content = document.getElementById('wbStoreModalContent');
+    if (!modal || !content) return;
+
+    function closeStoreModal() {
+        modal.classList.add('wb-hidden');
+        modal.setAttribute('aria-hidden', 'true');
+        content.innerHTML = '';
+        document.body.classList.remove('wb-modal-open');
+    }
+
+    function openStoreModal(url) {
+        var fetchUrl = url + (url.indexOf('?') >= 0 ? '&' : '?') + 'modal=1';
+        content.innerHTML = '<p class="wb-modal-loading">Loading stores...</p>';
+        modal.classList.remove('wb-hidden');
+        modal.setAttribute('aria-hidden', 'false');
+        document.body.classList.add('wb-modal-open');
+
+        fetch(fetchUrl)
+            .then(function (response) {
+                if (!response.ok) throw new Error('Failed to load stores');
+                return response.text();
+            })
+            .then(function (html) {
+                content.innerHTML = html;
+            })
+            .catch(function () {
+                content.innerHTML = '<p class="wb-error-text">Unable to load stores. Please try again.</p>';
+            });
+    }
+
+    document.addEventListener('click', function (event) {
+        var link = event.target.closest('.wb-recommendations-body a[href*="/stores"]');
+        if (!link) return;
+        event.preventDefault();
+        openStoreModal(link.href);
+    });
+
+    modal.addEventListener('click', function (event) {
+        if (event.target.closest('[data-wb-modal-close]')) {
+            closeStoreModal();
+        }
+    });
+
+    document.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape' && !modal.classList.contains('wb-hidden')) {
+            closeStoreModal();
+        }
+    });
+})();
+</script>

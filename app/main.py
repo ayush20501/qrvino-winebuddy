@@ -9,8 +9,7 @@ app = Flask(__name__, template_folder='../templates', static_folder='../static')
 app.secret_key = '112233'
 app.register_blueprint(customers_bp)
 
-import os
-openai.api_key = os.getenv('OPENAI_API_KEY', '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')
+openai.api_key = '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'
 
 def get_chatbot_response(messages):
     response = openai.ChatCompletion.create(
@@ -93,7 +92,8 @@ def show_stores():
         query = "SELECT RSTRNT_NM,RSTRNT_KEY FROM ai_rstrnt WHERE ChatGPT_IND = 'Y'"
         cursor.execute(query)
         restaurants = cursor.fetchall()
-        return render_template("store_selection.html", restr=restaurants, key_value=key)
+        template = "store_selection_modal.html" if request.args.get("modal") == "1" else "store_selection.html"
+        return render_template(template, restr=restaurants, key_value=key)
     except Exception as e:
         return f"Error: {str(e)}"
     finally:
@@ -106,21 +106,34 @@ def show_stores():
 def redirect_external():
     if request.method == "POST":
         selected_restaurant_key = request.form.get("selected_restaurant")
-        keyValue = request.form.get("keyvalue")
-        target_url = get_target_url(selected_restaurant_key,keyValue)
+        vrtl_key = request.form.get("vrtlkey") or request.form.get("keyvalue")
+        reg_key = request.form.get("regkey")
+        is_customer = "vrtlkey" in request.form
+        
+        if is_customer:
+            from app.customer_routes import get_target_url as get_cust_target_url
+            if vrtl_key and reg_key:
+                from app.customer_routes import get_target_url_reg
+                target_url = get_target_url_reg(selected_restaurant_key, reg_key, vrtl_key)
+            else:
+                target_url = get_cust_target_url(selected_restaurant_key, vrtl_key)
+        else:
+            target_url = get_target_url(selected_restaurant_key, vrtl_key)
+            
         if target_url:
             return redirect(target_url)
         else:
-            return """
+            back_url = "/customer/stores" if is_customer else "/stores"
+            return f"""
                 <html>
                 <head>
                     <script>
                         alert("Target URL not found");
-                        window.location.href = "/stores";
+                        window.location.href = "{back_url}";
                     </script>
                 </head>
                 <body>
-                    <p>If you are not redirected, <a href="/stores">click here</a>.</p>
+                    <p>If you are not redirected, <a href="{back_url}">click here</a>.</p>
                 </body>
                 </html>
             """, 404
