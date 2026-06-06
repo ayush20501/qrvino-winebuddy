@@ -33,15 +33,20 @@
 
 html {
     scroll-behavior: smooth;
+    overflow-x: clip;
 }
 
 body.wb-body {
     margin: 0;
     min-height: 100vh;
+    min-height: 100dvh;
     font-family: var(--wb-font);
     color: var(--wb-text);
     background: linear-gradient(160deg, var(--wb-bg-1) 0%, var(--wb-bg-2) 42%, var(--wb-bg-3) 100%);
     line-height: 1.55;
+    padding-left: env(safe-area-inset-left, 0);
+    padding-right: env(safe-area-inset-right, 0);
+    padding-bottom: env(safe-area-inset-bottom, 0);
 }
 
 body.wb-body::before,
@@ -271,7 +276,7 @@ body.wb-theme-beer::after {
 }
 
 .wb-card-grid-compact {
-    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
     gap: 1.35rem;
     max-width: none;
 }
@@ -729,45 +734,59 @@ body.wb-theme-beer .wb-options-panel {
 
 .wb-recommendations-body {
     overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
 }
 
 .wb-recommendations-body table {
     width: 100%;
     border-collapse: collapse;
-    table-layout: fixed;
+    table-layout: auto;
 }
 
 .wb-recommendations-body th,
 .wb-recommendations-body td {
-    padding: 1.1rem 1.35rem;
+    padding: 0.85rem 1rem;
     text-align: left;
     vertical-align: top;
     border-bottom: 1px solid var(--wb-border);
-    line-height: 1.65;
+    line-height: 1.6;
+    word-wrap: break-word;
+    overflow-wrap: anywhere;
 }
 
 .wb-recommendations-body th {
     font-weight: 700;
-    font-size: 0.95rem;
-    color: var(--wb-text);
+    font-size: 0.9rem;
+    color: var(--wb-gold);
     background: rgba(255, 245, 235, 0.04);
     border-bottom-width: 2px;
+    white-space: nowrap;
 }
 
 .wb-recommendations-body td {
     color: var(--wb-text-muted);
+    font-weight: 400;
 }
 
 .wb-recommendations-body th:first-child,
 .wb-recommendations-body td:first-child {
-    width: 16%;
-    min-width: 130px;
     font-weight: 700;
     color: var(--wb-gold-light);
 }
 
-.wb-recommendations-body tbody tr:last-child td {
+.wb-recommendations-body tbody tr:last-child td,
+.wb-recommendations-body table tr:last-child td {
     border-bottom: none;
+}
+
+.wb-recommendations-body table td.wb-col-profile {
+    white-space: normal;
+    width: auto;
+}
+
+.wb-recommendations-body table td.wb-col-notes {
+    font-style: italic;
+    color: var(--wb-text);
 }
 
 .wb-recommendations-body p {
@@ -937,45 +956,223 @@ body.wb-modal-open {
     color: var(--wb-text-muted);
 }
 
-.wb-recommendations-body table {
-    width: 100%;
-    border-collapse: collapse;
-    table-layout: auto;
+img,
+video,
+svg {
+    max-width: 100%;
+    height: auto;
 }
 
-.wb-recommendations-body table th,
-.wb-recommendations-body table td {
-    padding: 0.85rem 1rem;
-    text-align: left;
-    vertical-align: top;
-    border-bottom: 1px solid var(--wb-border);
-    line-height: 1.6;
-    word-wrap: break-word;
+.wb-selection-item label {
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
-.wb-recommendations-body table td {
-    color: var(--wb-text-muted);
-    font-weight: 400;
+@media (max-width: 767px) {
+    .wb-page {
+        padding: 1.25rem 1rem 2rem;
+    }
+
+    .wb-page-chat {
+        justify-content: flex-start;
+        padding: 1.25rem 1rem 2rem;
+        min-height: 100dvh;
+    }
+
+    .wb-header {
+        margin-bottom: 1.5rem;
+    }
+
+    .wb-panel {
+        padding: 1.15rem;
+    }
+
+    .wb-panel-title,
+    .wb-modal-title {
+        font-size: 1.15rem;
+    }
+
+    .wb-recommendations {
+        padding: 1rem 0.75rem 1.5rem;
+    }
+
+    .wb-recommendations-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .wb-recommendations-header h2 {
+        font-size: 1.2rem;
+        text-align: center;
+    }
+
+    .wb-recommendations-actions {
+        flex-direction: column;
+    }
+
+    .wb-recommendations-actions .wb-btn {
+        width: 100%;
+    }
+
+    .wb-card-grid:not(.wb-card-grid-compact) .wb-card-body {
+        min-height: 0;
+    }
+
+    .wb-card-grid:not(.wb-card-grid-compact) .wb-card-body .wb-btn {
+        width: 100%;
+    }
+
+    .wb-input-wrap {
+        flex-wrap: wrap;
+    }
+
+    .wb-input-wrap .wb-input {
+        min-width: 0;
+    }
+
+    .wb-input-wrap .wb-btn-icon {
+        flex: 0 0 auto;
+        min-width: 3rem;
+        min-height: 3rem;
+    }
+
+    .wb-center-page {
+        padding: 1rem;
+        align-items: flex-start;
+        min-height: 100dvh;
+    }
+
+    .wb-center-page .wb-page-narrow {
+        width: 100%;
+    }
+
+    .wb-modal {
+        padding: 0.75rem;
+        align-items: flex-end;
+    }
+
+    .wb-modal-dialog {
+        width: 100%;
+        max-height: 92dvh;
+        padding: 1.25rem 1rem max(1rem, env(safe-area-inset-bottom, 0));
+        border-bottom-left-radius: 0;
+        border-bottom-right-radius: 0;
+    }
+
+    .wb-selection-item {
+        align-items: flex-start;
+    }
+
+    .wb-selection-item input[type="radio"] {
+        margin-top: 0.2rem;
+    }
+
+    .wb-option-row .form-check-label {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    .wb-option-row .form-check-input {
+        order: -1;
+    }
+
+    .wb-recommendations-body table thead {
+        display: none;
+    }
+
+    .wb-recommendations-body table,
+    .wb-recommendations-body table tbody,
+    .wb-recommendations-body table tr,
+    .wb-recommendations-body table td {
+        display: block;
+        width: 100%;
+    }
+
+    .wb-recommendations-body table tr {
+        margin-bottom: 1rem;
+        padding: 0.85rem;
+        border: 1px solid var(--wb-border);
+        border-radius: var(--wb-radius);
+        background: rgba(255, 245, 235, 0.03);
+    }
+
+    .wb-recommendations-body table tr:last-child {
+        margin-bottom: 0;
+    }
+
+    .wb-recommendations-body table td {
+        padding: 0.5rem 0;
+        border-bottom: 1px dashed rgba(212, 175, 55, 0.15);
+    }
+
+    .wb-recommendations-body table td:last-child {
+        border-bottom: none;
+        padding-bottom: 0;
+    }
+
+    .wb-recommendations-body table td:first-child {
+        padding-top: 0;
+        font-size: 1.05rem;
+        border-bottom-style: solid;
+        border-bottom-width: 1px;
+        margin-bottom: 0.35rem;
+    }
+
+    .wb-recommendations-body table td.wb-col-profile {
+        white-space: normal;
+    }
 }
 
-.wb-recommendations-body table th {
-    color: var(--wb-gold);
-    font-weight: 700;
-    font-size: 0.9rem;
-    border-bottom: 2px solid var(--wb-border);
-    white-space: nowrap;
+@media (max-width: 479px) {
+    .wb-page {
+        padding: 1rem 0.75rem 1.75rem;
+    }
+
+    .wb-card-grid,
+    .wb-card-grid-compact {
+        grid-template-columns: 1fr;
+    }
+
+    .wb-card-media,
+    .wb-card-grid-compact .wb-card-media {
+        height: clamp(160px, 42vw, 210px);
+    }
+
+    .wb-logo {
+        width: min(240px, 85vw);
+        max-height: 64px;
+    }
+
+    .wb-quote {
+        font-size: 0.95rem;
+    }
+
+    .wb-subtitle {
+        font-size: 0.9rem;
+    }
+
+    .wb-recommendations-body th,
+    .wb-recommendations-body td {
+        padding: 0.65rem 0.75rem;
+        font-size: 0.88rem;
+    }
+
+    .wb-btn {
+        min-height: 2.75rem;
+    }
+
+    .wb-chat-hero {
+        margin-bottom: 1.5rem;
+    }
+
+    .wb-actions-continue .wb-btn {
+        min-height: 3.25rem;
+    }
 }
 
-.wb-recommendations-body table tr:last-child td {
-    border-bottom: none;
-}
-
-.wb-recommendations-body table td.wb-col-profile {
-    white-space: nowrap;
-    width: 1%;
-}
-
-.wb-recommendations-body table td.wb-col-notes {
-    font-style: italic;
-    color: var(--wb-text);
+@media (min-width: 768px) {
+    .wb-recommendations-body table td.wb-col-profile {
+        white-space: nowrap;
+        width: 1%;
+    }
 }
