@@ -2,18 +2,26 @@ from flask import Flask, render_template, request,redirect,session
 import openai
 import re
 import mysql.connector
-from app.config import openai, create_database_connection
+from app.config import openai, create_database_connection, OPENAI_MODEL
 from app.customer_routes import customers_bp
 
 app = Flask(__name__, template_folder='../templates', static_folder='../static')
 app.secret_key = '112233'
 app.register_blueprint(customers_bp)
 
-openai.api_key = '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'
+openai.api_key = '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'
 
 def get_chatbot_response(messages):
+    payload = {
+        "model": OPENAI_MODEL,
+        "messages": messages
+    }
+    import json
+    print("--- OPENAI API PAYLOAD ---")
+    print(json.dumps(payload, indent=2))
+    print("--------------------------")
     response = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",
+        model=OPENAI_MODEL,
         messages=messages
     )
     return response.choices[0].message["content"]

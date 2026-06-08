@@ -40,6 +40,7 @@
     document.querySelectorAll('.wb-recommendations-body table tr').forEach(function(row) {
         var cells = row.querySelectorAll('td');
         if (!cells.length) return;
+        if (cells.length === 2) return;
 
         var profileCell = null;
         var notesCell = null;

@@ -803,12 +803,10 @@ body.wb-theme-beer .wb-options-panel {
     color: var(--wb-gold-light);
     font-weight: 600;
     text-decoration: none;
-    border-bottom: 1px solid rgba(232, 201, 106, 0.45);
 }
 
 .wb-recommendations-body a:hover {
     color: var(--wb-text);
-    border-bottom-color: var(--wb-text);
 }
 
 .wb-loader-overlay {
@@ -1171,8 +1169,10 @@ svg {
 }
 
 @media (min-width: 768px) {
-    .wb-recommendations-body table td.wb-col-profile {
+    .wb-recommendations-body th:first-child,
+    .wb-recommendations-body td:first-child {
         white-space: nowrap;
-        width: 1%;
+        width: 15%;
+        min-width: 180px;
     }
 }

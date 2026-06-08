@@ -1,5 +1,5 @@
-from flask import Flask, render_template, request,redirect,g,Blueprint,session
-from app.config import openai, create_database_connection
+from flask import Flask, render_template, request, redirect, g, Blueprint, session
+from app.config import openai, create_database_connection, OPENAI_MODEL
 import re
 import mysql.connector
 from bs4 import BeautifulSoup
@@ -205,20 +205,19 @@ def get_customer_recommendations():
                 return "No response from chatbot"
             cursor.execute("SELECT VRTL_NM,VRTL_KEY FROM ai_vrtl")
             beer_varietals = cursor.fetchall()
-            headers = ["Beer Style Name", "Flavor Profile", "Pairing Notes", "Best Glass", "Best Temperature"]
+            headers = ["Varietal", "Sommelier Notes"]
             html_table = "<table>\n<thead>\n" + "".join(f"<th>{h}</th>\n" for h in headers) + "\n</thead><tbody>\n"
             for p in beer_pairings:
                 name = (p.get("name") or "").strip()
                 matched = next((item for item in beer_varietals if item['VRTL_NM'].strip().lower() == name.lower()), None)
                 name_cell = f'<a href="/customer/stores?key={matched["VRTL_KEY"]}&testflag=1">{matched["VRTL_NM"]}</a>' if matched else name
-                profile = f"Flavor: {p.get('flavor', '')} Aroma: {p.get('aroma', '')} Bitterness: {p.get('bitterness', '')} ABV: {p.get('abv', '')}"
+                raw_notes = p.get("sommelier_notes", "")
+                formatted_notes = raw_notes.replace("\n", "<br>")
+                formatted_notes = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', formatted_notes)
                 html_table += (
                     "<tr>\n"
                     f"<td>{name_cell}</td>\n"
-                    f"<td>{profile}</td>\n"
-                    f"<td>{p.get('pairing_notes', '')}</td>\n"
-                    f"<td>{p.get('best_glass', '')}</td>\n"
-                    f"<td>{p.get('best_temp', '')}</td>\n"
+                    f"<td>{formatted_notes}</td>\n"
                     "</tr>\n"
                 )
             html_table += "</tbody>\n</table>"
@@ -230,20 +229,19 @@ def get_customer_recommendations():
                 return "No response from chatbot"
             cursor.execute("SELECT VRTL_NM,VRTL_KEY FROM ai_vrtl")
             wine_varietals = cursor.fetchall()
-            headers = ["Wine Style Name", "Flavor Profile", "Pairing Notes", "Best Glass", "Best Serving Temperature"]
+            headers = ["Varietal", "Sommelier Notes"]
             html_table = "<table>\n<thead>\n" + "".join(f"<th>{h}</th>\n" for h in headers) + "\n</thead><tbody>\n"
             for p in wine_pairings:
                 name = (p.get("name") or "").strip()
                 matched = next((item for item in wine_varietals if item['VRTL_NM'].strip().lower() == name.lower()), None)
                 name_cell = f'<a href="/customer/stores?key={matched["VRTL_KEY"]}&testflag=1">{matched["VRTL_NM"]}</a>' if matched else name
-                profile = f"Flavor: {p.get('flavor', '')} Aroma: {p.get('aroma', '')} Tannins: {p.get('tannins', '')} Taste: {p.get('taste', '')} ABV: {p.get('abv', '')}"
+                raw_notes = p.get("sommelier_notes", "")
+                formatted_notes = raw_notes.replace("\n", "<br>")
+                formatted_notes = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', formatted_notes)
                 html_table += (
                     "<tr>\n"
                     f"<td>{name_cell}</td>\n"
-                    f"<td>{profile}</td>\n"
-                    f"<td>{p.get('pairing_notes', '')}</td>\n"
-                    f"<td>{p.get('best_glass', '')}</td>\n"
-                    f"<td>{p.get('best_temp', '')}</td>\n"
+                    f"<td>{formatted_notes}</td>\n"
                     "</tr>\n"
                 )
             html_table += "</tbody>\n</table>"
@@ -260,6 +258,11 @@ def get_customer_recommendations():
             {"role": "system", "content": "You are WineBuddy and BeerBuddy the Virtual Sommelier for wine and beer. You can recommend wine or beer as asked. " + table_instruction},
             {"role": "user", "content": f'{prompt_result}? {user_input}'},
         ]
+        print("--- SYSTEM PROMPT ---")
+        print(conversation[0]["content"])
+        print("--- USER PROMPT (DB + USER INPUT) ---")
+        print(conversation[1]["content"])
+        print("-------------------------------------")
         chatbot_response = get_chatbot_response(conversation)
         matched_varietals = []
         query = "SELECT VRTL_NM,VRTL_KEY FROM ai_vrtl"
@@ -337,10 +340,18 @@ def get_customer_recommendations():
             db_connection.close()
 
 def get_chatbot_response(messages):
+    payload = {
+        "model": OPENAI_MODEL,
+        "messages": messages,
+        "temperature": 0
+    }
+    print("--- OPENAI API PAYLOAD ---")
+    print(json.dumps(payload, indent=2))
+    print("--------------------------")
     for attempt in range(3):
         try:
             response = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo",
+                model=OPENAI_MODEL,
                 messages=messages,
                 temperature=0
             )
@@ -363,16 +374,13 @@ def get_beer_pairings(prompt_result, user_input):
                     "items": {
                         "type": "object",
                         "properties": {
-                            "name": {"type": "string", "description": "Beer style name"},
-                            "flavor": {"type": "string"},
-                            "aroma": {"type": "string"},
-                            "bitterness": {"type": "string"},
-                            "abv": {"type": "string"},
-                            "pairing_notes": {"type": "string", "description": "2-3 sentences on why this beer pairs well with the dish"},
-                            "best_glass": {"type": "string"},
-                            "best_temp": {"type": "string"}
+                            "name": {"type": "string", "description": "Beer style, brand or variety name"},
+                            "sommelier_notes": {
+                                "type": "string",
+                                "description": "Sommelier notes about the beer. You must strictly follow the user's prompt instructions for what details to include, formatting each detail/field label in bold and on a new line using markdown format (e.g., '**Label:** Value\\n')."
+                            }
                         },
-                        "required": ["name", "flavor", "aroma", "bitterness", "abv", "pairing_notes", "best_glass", "best_temp"]
+                        "required": ["name", "sommelier_notes"]
                     }
                 }
             },
@@ -380,13 +388,32 @@ def get_beer_pairings(prompt_result, user_input):
         }
     }]
     messages = [
-        {"role": "system", "content": "You are BeerBuddy, a virtual beer sommelier. Recommend suitable beers and return them using the return_beer_pairings function."},
+        {"role": "system", "content": (
+            "You are BeerBuddy, an expert virtual beer sommelier. Recommend suitable beers and strictly return them using the return_beer_pairings function. "
+            "CRITICAL RULES FOR 'sommelier_notes': You must dynamically identify every specific detail requested by the user prompt. "
+            "You are strictly forbidden from grouping multiple details into a single paragraph. "
+            "You must format the notes as a strict vertical list where each requested detail is on its own separate new line (\\n). "
+            "Every field label you extract must be strictly wrapped in double asterisks followed by a colon and a space. "
+            "For example, if the user asks for origin and taste, output exactly: '**Origin:** [value]\\n**Taste:** [value]'. "
+            "If they ask for grape and body, output exactly: '**Grape:** [value]\\n**Body:** [value]'. "
+            "Failure to follow this exact bolded, line-by-line format will result in a system error."
+        )},
         {"role": "user", "content": f'{prompt_result}? {user_input}'}
     ]
+    payload = {
+        "model": OPENAI_MODEL,
+        "messages": messages,
+        "functions": functions,
+        "function_call": {"name": "return_beer_pairings"},
+        "temperature": 0
+    }
+    print("--- OPENAI API PAYLOAD ---")
+    print(json.dumps(payload, indent=2))
+    print("--------------------------")
     for attempt in range(3):
         try:
             response = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo",
+                model=OPENAI_MODEL,
                 messages=messages,
                 functions=functions,
                 function_call={"name": "return_beer_pairings"},
@@ -412,17 +439,13 @@ def get_wine_pairings(prompt_result, user_input):
                     "items": {
                         "type": "object",
                         "properties": {
-                            "name": {"type": "string", "description": "Wine style or varietal name"},
-                            "flavor": {"type": "string"},
-                            "aroma": {"type": "string"},
-                            "tannins": {"type": "string"},
-                            "taste": {"type": "string"},
-                            "abv": {"type": "string"},
-                            "pairing_notes": {"type": "string", "description": "2-3 sentences on why this wine pairs well with the dish"},
-                            "best_glass": {"type": "string"},
-                            "best_temp": {"type": "string"}
+                            "name": {"type": "string", "description": "Wine style, varietal or brand name"},
+                            "sommelier_notes": {
+                                "type": "string",
+                                "description": "Sommelier notes about the wine. You must strictly follow the user's prompt instructions for what details to include, formatting each detail/field label in bold and on a new line using markdown format (e.g., '**Label:** Value\\n')."
+                            }
                         },
-                        "required": ["name", "flavor", "aroma", "tannins", "taste", "abv", "pairing_notes", "best_glass", "best_temp"]
+                        "required": ["name", "sommelier_notes"]
                     }
                 }
             },
@@ -430,13 +453,32 @@ def get_wine_pairings(prompt_result, user_input):
         }
     }]
     messages = [
-        {"role": "system", "content": "You are WineBuddy, a virtual wine sommelier. Recommend suitable wines and return them using the return_wine_pairings function."},
+        {"role": "system", "content": (
+            "You are WineBuddy, an expert virtual wine sommelier. Recommend suitable wines and strictly return them using the return_wine_pairings function. "
+            "CRITICAL RULES FOR 'sommelier_notes': You must dynamically identify every specific detail requested by the user prompt. "
+            "You are strictly forbidden from grouping multiple details into a single paragraph. "
+            "You must format the notes as a strict vertical list where each requested detail is on its own separate new line (\\n). "
+            "Every field label you extract must be strictly wrapped in double asterisks followed by a colon and a space. "
+            "For example, if the user asks for origin and taste, output exactly: '**Origin:** [value]\\n**Taste:** [value]'. "
+            "If they ask for grape and body, output exactly: '**Grape:** [value]\\n**Body:** [value]'. "
+            "Failure to follow this exact bolded, line-by-line format will result in a system error."
+        )},
         {"role": "user", "content": f'{prompt_result}? {user_input}'}
     ]
+    payload = {
+        "model": OPENAI_MODEL,
+        "messages": messages,
+        "functions": functions,
+        "function_call": {"name": "return_wine_pairings"},
+        "temperature": 0
+    }
+    print("--- OPENAI API PAYLOAD ---")
+    print(json.dumps(payload, indent=2))
+    print("--------------------------")
     for attempt in range(3):
         try:
             response = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo",
+                model=OPENAI_MODEL,
                 messages=messages,
                 functions=functions,
                 function_call={"name": "return_wine_pairings"},
