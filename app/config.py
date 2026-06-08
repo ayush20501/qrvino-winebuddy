@@ -1,8 +1,16 @@
+import os
+from pathlib import Path
+
 import mysql.connector
 from mysql.connector import pooling
 import openai
+from dotenv import load_dotenv
 
-openai.api_key = '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'
+load_dotenv(Path(__file__).resolve().parent.parent / ".env")
+
+openai.api_key = os.getenv("OPENAI_API_KEY", "")
+if not openai.api_key:
+    raise ValueError("OPENAI_API_KEY is not set. Add it to your .env file.")
 
 OPENAI_MODEL = "gpt-4o-mini"
 

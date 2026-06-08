@@ -9,8 +9,6 @@ app = Flask(__name__, template_folder='../templates', static_folder='../static')
 app.secret_key = '112233'
 app.register_blueprint(customers_bp)
 
-openai.api_key = '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'
-
 def get_chatbot_response(messages):
     payload = {
         "model": OPENAI_MODEL,
