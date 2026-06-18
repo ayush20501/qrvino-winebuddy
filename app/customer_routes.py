@@ -8,8 +8,11 @@ import logging
 import base64
 import time
 import json
-
 customers_bp = Blueprint('customers', __name__)
+
+def parse_sommelier_notes(raw_notes):
+    matches = re.findall(r'(?:^|\n)\s*(?:\*\*|\*)?([A-Za-z0-9\s&/\-\'\?]+?)(?:\*\*|\*)?:\s*([\s\S]*?)(?=\s*\n\s*(?:\*\*|\*)?[A-Za-z0-9\s&/\-\'\?]+(?:\*\*|\*)?:\s*|\s*$)', raw_notes)
+    return {label.strip(): value.strip("* \t\n\r").replace("\n", "<br>") for label, value in matches}
 
 def make_clickable(match):
         word = match.group(1)
@@ -205,21 +208,29 @@ def get_customer_recommendations():
                 return "No response from chatbot"
             cursor.execute("SELECT VRTL_NM,VRTL_KEY FROM ai_vrtl")
             beer_varietals = cursor.fetchall()
-            headers = ["Varietal", "Sommelier Notes"]
-            html_table = "<table>\n<thead>\n" + "".join(f"<th>{h}</th>\n" for h in headers) + "\n</thead><tbody>\n"
+            parsed_pairings = []
+            headers_set = []
             for p in beer_pairings:
-                name = (p.get("name") or "").strip()
+                raw_notes = p.get("sommelier_notes", "")
+                parsed_notes = parse_sommelier_notes(raw_notes)
+                parsed_pairings.append({
+                    "name": (p.get("name") or "").strip(),
+                    "notes": parsed_notes
+                })
+                for label in parsed_notes.keys():
+                    if label not in headers_set:
+                        headers_set.append(label)
+            headers = ["Varietal"] + headers_set
+            html_table = "<table>\n<thead>\n" + "".join(f"<th>{h}</th>\n" for h in headers) + "\n</thead><tbody>\n"
+            for p in parsed_pairings:
+                name = p["name"]
                 matched = next((item for item in beer_varietals if item['VRTL_NM'].strip().lower() == name.lower()), None)
                 name_cell = f'<a href="/customer/stores?key={matched["VRTL_KEY"]}&testflag=1">{matched["VRTL_NM"]}</a>' if matched else name
-                raw_notes = p.get("sommelier_notes", "")
-                formatted_notes = raw_notes.replace("\n", "<br>")
-                formatted_notes = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', formatted_notes)
-                html_table += (
-                    "<tr>\n"
-                    f"<td>{name_cell}</td>\n"
-                    f"<td>{formatted_notes}</td>\n"
-                    "</tr>\n"
-                )
+                row_cells = [f'<td data-label="Varietal">{name_cell}</td>']
+                for header in headers_set:
+                    val = p["notes"].get(header, "")
+                    row_cells.append(f'<td data-label="{header}">{val}</td>')
+                html_table += "<tr>\n" + "".join(row_cells) + "\n</tr>\n"
             html_table += "</tbody>\n</table>"
             return render_template("recommendations_table.html", token=1, var=html_table, rstrnt_ind=rstrnt_ind, no_wine_beer_ind=no_wine_beer_ind, color=theme_color)
 
@@ -229,21 +240,29 @@ def get_customer_recommendations():
                 return "No response from chatbot"
             cursor.execute("SELECT VRTL_NM,VRTL_KEY FROM ai_vrtl")
             wine_varietals = cursor.fetchall()
-            headers = ["Varietal", "Sommelier Notes"]
-            html_table = "<table>\n<thead>\n" + "".join(f"<th>{h}</th>\n" for h in headers) + "\n</thead><tbody>\n"
+            parsed_pairings = []
+            headers_set = []
             for p in wine_pairings:
-                name = (p.get("name") or "").strip()
+                raw_notes = p.get("sommelier_notes", "")
+                parsed_notes = parse_sommelier_notes(raw_notes)
+                parsed_pairings.append({
+                    "name": (p.get("name") or "").strip(),
+                    "notes": parsed_notes
+                })
+                for label in parsed_notes.keys():
+                    if label not in headers_set:
+                        headers_set.append(label)
+            headers = ["Varietal"] + headers_set
+            html_table = "<table>\n<thead>\n" + "".join(f"<th>{h}</th>\n" for h in headers) + "\n</thead><tbody>\n"
+            for p in parsed_pairings:
+                name = p["name"]
                 matched = next((item for item in wine_varietals if item['VRTL_NM'].strip().lower() == name.lower()), None)
                 name_cell = f'<a href="/customer/stores?key={matched["VRTL_KEY"]}&testflag=1">{matched["VRTL_NM"]}</a>' if matched else name
-                raw_notes = p.get("sommelier_notes", "")
-                formatted_notes = raw_notes.replace("\n", "<br>")
-                formatted_notes = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', formatted_notes)
-                html_table += (
-                    "<tr>\n"
-                    f"<td>{name_cell}</td>\n"
-                    f"<td>{formatted_notes}</td>\n"
-                    "</tr>\n"
-                )
+                row_cells = [f'<td data-label="Varietal">{name_cell}</td>']
+                for header in headers_set:
+                    val = p["notes"].get(header, "")
+                    row_cells.append(f'<td data-label="{header}">{val}</td>')
+                html_table += "<tr>\n" + "".join(row_cells) + "\n</tr>\n"
             html_table += "</tbody>\n</table>"
             return render_template("recommendations_table.html", token=1, var=html_table, rstrnt_ind=rstrnt_ind, no_wine_beer_ind=no_wine_beer_ind, color=theme_color)
 

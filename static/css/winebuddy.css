@@ -751,7 +751,7 @@ body.wb-theme-beer .wb-options-panel {
     border-bottom: 1px solid var(--wb-border);
     line-height: 1.6;
     word-wrap: break-word;
-    overflow-wrap: anywhere;
+    overflow-wrap: break-word;
 }
 
 .wb-recommendations-body th {
@@ -1119,6 +1119,12 @@ svg {
     .wb-recommendations-body table td.wb-col-profile {
         white-space: normal;
     }
+
+    .wb-recommendations-body table td:not(:first-child):before {
+        content: attr(data-label) ": ";
+        font-weight: 700;
+        color: var(--wb-gold-light);
+    }
 }
 
 @media (max-width: 479px) {
@@ -1169,6 +1175,10 @@ svg {
 }
 
 @media (min-width: 768px) {
+    .wb-recommendations-body table {
+        min-width: 1400px;
+    }
+
     .wb-recommendations-body th:first-child,
     .wb-recommendations-body td:first-child {
         white-space: nowrap;
