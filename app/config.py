@@ -17,10 +17,12 @@ OPENAI_MODEL = "gpt-4o-mini"
 db_pool = mysql.connector.pooling.MySQLConnectionPool(
     pool_name="winebuddy_pool",
     pool_size=10,
-    host='198.12.233.20',
-    user='ai_qrvino_user',
-    password='ai_qrvino_user',
-    database='ai_qrvino'
+    host=os.getenv("SOURCE_DB_HOST"),
+    port=int(os.getenv("SOURCE_DB_PORT", 3306)),
+    user=os.getenv("SOURCE_DB_USER"),
+    password=os.getenv("SOURCE_DB_PASSWORD"),
+    database=os.getenv("SOURCE_DB_NAME"),
+    ssl_disabled=False
 )
 
 def create_database_connection():

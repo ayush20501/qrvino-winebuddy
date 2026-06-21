@@ -14,8 +14,8 @@
 
 <div class="wb-page wb-page-chat">
     <div class="wb-chat-hero">
-        {% if image_data %}
-        <img src="data:image/png;base64,{{ image_data }}" alt="WineBuddy AI Assistant">
+        {% if logo_path %}
+        <img src="{{ url_for('static', filename=logo_path) }}" alt="WineBuddy AI Assistant">
         {% endif %}
         <div id="colorText">
             <span class="wb-intro-line">{{ first_line }}</span>

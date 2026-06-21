@@ -5,7 +5,6 @@ import mysql.connector
 from bs4 import BeautifulSoup
 import os
 import logging
-import base64
 import time
 import json
 customers_bp = Blueprint('customers', __name__)
@@ -57,15 +56,14 @@ def show_image(slug):
         result = cursor.fetchone()
 
         if result is not None and result['CANA_IND'] == 'Y':
-            query = "SELECT RSTRNT_IND,MEAT_CUT_IND,PRIME_IND,AI_CSTMR_KEY,CHTBX_LOGO_IMG, CHTBX_FRST_LINE, CHTBX_SCND_LINE, OPTION_1_TXT, OPTION_2_TXT, OPTION_3_TXT, OPTION_4_TXT, OPTION_5_TXT, OPTION_6_TXT, OPTION_7_TXT, OPTION_8_TXT, OPTION_9_TXT, OPTION_10_TXT FROM ai_cstmr WHERE AI_CSTMR_START_TXT LIKE %s"
+            query = "SELECT RSTRNT_IND,MEAT_CUT_IND,PRIME_IND,AI_CSTMR_KEY,LOGO_PATH, CHTBX_FRST_LINE, CHTBX_SCND_LINE, OPTION_1_TXT, OPTION_2_TXT, OPTION_3_TXT, OPTION_4_TXT, OPTION_5_TXT, OPTION_6_TXT, OPTION_7_TXT, OPTION_8_TXT, OPTION_9_TXT, OPTION_10_TXT FROM ai_cstmr WHERE AI_CSTMR_START_TXT LIKE %s"
             cursor.execute(query,('%' + page_name + '%',))
             result = cursor.fetchone()
             if result is not None:
                 meat_cut_ind = result['MEAT_CUT_IND']
                 rstrnt_ind = result['RSTRNT_IND']
                 prime_ind = result['PRIME_IND']
-                image_data = result['CHTBX_LOGO_IMG']
-                image_data_base64 = base64.b64encode(image_data).decode('utf-8') if image_data else ""
+                logo_path = result['LOGO_PATH']
                 first_line = result['CHTBX_FRST_LINE']
                 second_line_from_database = result['CHTBX_SCND_LINE']
                 ai_cstmr_key = result['AI_CSTMR_KEY']
@@ -80,12 +78,12 @@ def show_image(slug):
                 if meat_cut_ind == 'Y':
                     second_line_from_database = re.sub(r'\*([^\*]+)\*', make_clickable, second_line_from_database)
                 session['theme_color'] = 'Y'
-                return render_template('customer_chat.html', image_data=image_data_base64, first_line=first_line, second_line=second_line_from_database,customer_name=page_name, color = "Y", options = options_list, rstrnt_ind=rstrnt_ind, prime_ind=prime_ind)
+                return render_template('customer_chat.html', logo_path=logo_path, first_line=first_line, second_line=second_line_from_database,customer_name=page_name, color = "Y", options = options_list, rstrnt_ind=rstrnt_ind, prime_ind=prime_ind)
             else:
                 return {'page_name': page_name}
 
         elif result is not None and result['BEER_IND'] == 'Y':
-            query = "SELECT RSTRNT_IND,MEAT_CUT_IND,PRIME_IND,AI_CSTMR_KEY,CHTBX_LOGO_IMG, CHTBX_FRST_LINE, CHTBX_SCND_LINE, OPTION_1_TXT, OPTION_2_TXT, OPTION_3_TXT, OPTION_4_TXT, OPTION_5_TXT, OPTION_6_TXT, OPTION_7_TXT, OPTION_8_TXT, OPTION_9_TXT, OPTION_10_TXT FROM ai_cstmr WHERE AI_CSTMR_START_TXT LIKE %s"
+            query = "SELECT RSTRNT_IND,MEAT_CUT_IND,PRIME_IND,AI_CSTMR_KEY,LOGO_PATH, CHTBX_FRST_LINE, CHTBX_SCND_LINE, OPTION_1_TXT, OPTION_2_TXT, OPTION_3_TXT, OPTION_4_TXT, OPTION_5_TXT, OPTION_6_TXT, OPTION_7_TXT, OPTION_8_TXT, OPTION_9_TXT, OPTION_10_TXT FROM ai_cstmr WHERE AI_CSTMR_START_TXT LIKE %s"
             cursor.execute(query,('%' + page_name + '%',))
             result = cursor.fetchone()
 
@@ -93,8 +91,7 @@ def show_image(slug):
                 meat_cut_ind = result['MEAT_CUT_IND']
                 rstrnt_ind = result['RSTRNT_IND']
                 prime_ind = result['PRIME_IND']
-                image_data = result['CHTBX_LOGO_IMG']
-                image_data_base64 = base64.b64encode(image_data).decode('utf-8') if image_data else ""
+                logo_path = result['LOGO_PATH']
                 first_line = result['CHTBX_FRST_LINE']
                 second_line_from_database = result['CHTBX_SCND_LINE']
                 ai_cstmr_key = result['AI_CSTMR_KEY']
@@ -105,7 +102,7 @@ def show_image(slug):
                     opt = result[f'OPTION_{i}_TXT']
                     if opt and opt != 'null' and opt != '':
                         options_list.append({'id': i, 'text': opt})
-                
+
                 matches_list = []
                 intro_text = ""
                 if meat_cut_ind == 'Y':
@@ -115,19 +112,18 @@ def show_image(slug):
 
                 matches_list = sorted(matches_list)
                 session['theme_color'] = 'G'
-                return render_template('customer_chat.html',intro_text=intro_text, matches_list = matches_list,image_data=image_data_base64, first_line=first_line, second_line=second_line_from_database,customer_name=page_name, color = "G", options = options_list, rstrnt_ind=rstrnt_ind, prime_ind=prime_ind)
+                return render_template('customer_chat.html',intro_text=intro_text, matches_list = matches_list,logo_path=logo_path, first_line=first_line, second_line=second_line_from_database,customer_name=page_name, color = "G", options = options_list, rstrnt_ind=rstrnt_ind, prime_ind=prime_ind)
             else:
                 return {'page_name': page_name}
         else:
-            query = "SELECT RSTRNT_IND,MEAT_CUT_IND,PRIME_IND,AI_CSTMR_KEY,CHTBX_LOGO_IMG, CHTBX_FRST_LINE, CHTBX_SCND_LINE, OPTION_1_TXT, OPTION_2_TXT, OPTION_3_TXT, OPTION_4_TXT, OPTION_5_TXT, OPTION_6_TXT, OPTION_7_TXT, OPTION_8_TXT, OPTION_9_TXT, OPTION_10_TXT FROM ai_cstmr WHERE AI_CSTMR_START_TXT LIKE %s"
+            query = "SELECT RSTRNT_IND,MEAT_CUT_IND,PRIME_IND,AI_CSTMR_KEY,LOGO_PATH, CHTBX_FRST_LINE, CHTBX_SCND_LINE, OPTION_1_TXT, OPTION_2_TXT, OPTION_3_TXT, OPTION_4_TXT, OPTION_5_TXT, OPTION_6_TXT, OPTION_7_TXT, OPTION_8_TXT, OPTION_9_TXT, OPTION_10_TXT FROM ai_cstmr WHERE AI_CSTMR_START_TXT LIKE %s"
             cursor.execute(query,('%' + page_name + '%',))
             result = cursor.fetchone()
             if result is not None:
                 meat_cut_ind = result['MEAT_CUT_IND']
                 rstrnt_ind = result['RSTRNT_IND']
                 prime_ind = result['PRIME_IND']
-                image_data = result['CHTBX_LOGO_IMG']
-                image_data_base64 = base64.b64encode(image_data).decode('utf-8') if image_data else ""
+                logo_path = result['LOGO_PATH']
                 first_line = result['CHTBX_FRST_LINE']
                 second_line_from_database = result['CHTBX_SCND_LINE']
                 ai_cstmr_key = result['AI_CSTMR_KEY']
@@ -146,7 +142,7 @@ def show_image(slug):
 
                 if image_url == '' or image_url == 'null':
                     image_url = False
-                
+
                 matches_list = []
                 intro_text = ""
 
@@ -156,7 +152,7 @@ def show_image(slug):
                     matches_list = re.findall(r'\*([^\*]+)\*', second_line_from_database)
                 matches_list = sorted(matches_list)
                 session['theme_color'] = 'N'
-                return render_template('customer_chat.html',intro_text=intro_text, matches_list = matches_list, ai_cstmr_key = ai_cstmr_key, image_data=image_data_base64,image_url = image_url,
+                return render_template('customer_chat.html',intro_text=intro_text, matches_list = matches_list, ai_cstmr_key = ai_cstmr_key, logo_path=logo_path, image_url = image_url,
                 first_line=first_line, second_line=second_line_from_database,customer_name=page_name, color = "N", options = options_list, rstrnt_ind=rstrnt_ind, prime_ind=prime_ind)
             else:
                 return {'page_name': page_name}
@@ -277,11 +273,6 @@ def get_customer_recommendations():
             {"role": "system", "content": "You are WineBuddy and BeerBuddy the Virtual Sommelier for wine and beer. You can recommend wine or beer as asked. " + table_instruction},
             {"role": "user", "content": f'{prompt_result}? {user_input}'},
         ]
-        print("--- SYSTEM PROMPT ---")
-        print(conversation[0]["content"])
-        print("--- USER PROMPT (DB + USER INPUT) ---")
-        print(conversation[1]["content"])
-        print("-------------------------------------")
         chatbot_response = get_chatbot_response(conversation)
         matched_varietals = []
         query = "SELECT VRTL_NM,VRTL_KEY FROM ai_vrtl"
@@ -359,14 +350,6 @@ def get_customer_recommendations():
             db_connection.close()
 
 def get_chatbot_response(messages):
-    payload = {
-        "model": OPENAI_MODEL,
-        "messages": messages,
-        "temperature": 0
-    }
-    print("--- OPENAI API PAYLOAD ---")
-    print(json.dumps(payload, indent=2))
-    print("--------------------------")
     for attempt in range(3):
         try:
             response = openai.ChatCompletion.create(
@@ -419,16 +402,6 @@ def get_beer_pairings(prompt_result, user_input):
         )},
         {"role": "user", "content": f'{prompt_result}? {user_input}'}
     ]
-    payload = {
-        "model": OPENAI_MODEL,
-        "messages": messages,
-        "functions": functions,
-        "function_call": {"name": "return_beer_pairings"},
-        "temperature": 0
-    }
-    print("--- OPENAI API PAYLOAD ---")
-    print(json.dumps(payload, indent=2))
-    print("--------------------------")
     for attempt in range(3):
         try:
             response = openai.ChatCompletion.create(
@@ -484,16 +457,6 @@ def get_wine_pairings(prompt_result, user_input):
         )},
         {"role": "user", "content": f'{prompt_result}? {user_input}'}
     ]
-    payload = {
-        "model": OPENAI_MODEL,
-        "messages": messages,
-        "functions": functions,
-        "function_call": {"name": "return_wine_pairings"},
-        "temperature": 0
-    }
-    print("--- OPENAI API PAYLOAD ---")
-    print(json.dumps(payload, indent=2))
-    print("--------------------------")
     for attempt in range(3):
         try:
             response = openai.ChatCompletion.create(

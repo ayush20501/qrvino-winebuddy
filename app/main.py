@@ -10,14 +10,6 @@ app.secret_key = '112233'
 app.register_blueprint(customers_bp)
 
 def get_chatbot_response(messages):
-    payload = {
-        "model": OPENAI_MODEL,
-        "messages": messages
-    }
-    import json
-    print("--- OPENAI API PAYLOAD ---")
-    print(json.dumps(payload, indent=2))
-    print("--------------------------")
     response = openai.ChatCompletion.create(
         model=OPENAI_MODEL,
         messages=messages
