@@ -4,10 +4,12 @@ import re
 import mysql.connector
 from app.config import openai, create_database_connection, OPENAI_MODEL
 from app.customer_routes import customers_bp
+from app.admin_routes import admin_bp
 
 app = Flask(__name__, template_folder='../templates', static_folder='../static')
 app.secret_key = '112233'
 app.register_blueprint(customers_bp)
+app.register_blueprint(admin_bp)
 
 def get_chatbot_response(messages):
     response = openai.ChatCompletion.create(

@@ -1,0 +1,161 @@
+{% extends "admin/base.html" %}
+{% block title %}{{ table_name }}{% endblock %}
+{% block page_title %}{{ table_name }}{% endblock %}
+
+{% block content %}
+<div style="display:flex;gap:10px;margin-bottom:16px;align-items:center">
+    <a href="{{ url_for('admin.dashboard') }}" class="btn btn-secondary btn-sm">&#8592; Tables</a>
+    <a href="{{ url_for('admin.add_row', table_name=table_name) }}" class="btn btn-primary btn-sm">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Add Row
+    </a>
+    <button class="btn btn-secondary btn-sm" onclick="openModal('addColModal')">+ Add Column</button>
+    <span style="margin-left:auto;color:#888;font-size:12px">{{ total }} rows &nbsp;|&nbsp; Page {{ page }} of {{ total_pages }}</span>
+</div>
+
+<div class="card" style="padding:0">
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    {% for col in columns %}
+                    <th>{{ col.Field }}</th>
+                    {% endfor %}
+                    {% if pk_col %}
+                    <th style="width:140px">Actions</th>
+                    {% endif %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in rows %}
+                <tr>
+                    {% for col in columns %}
+                    {% set val = row[col.Field] if row[col.Field] is not none else '' %}
+                    <td title="{{ val }}">
+                        {% if col.Field == 'LOGO_PATH' and val %}
+                            <img src="{{ url_for('static', filename=val) }}"
+                                 style="height:36px;max-width:90px;object-fit:contain;border-radius:3px"
+                                 onerror="this.style.display='none'">
+                        {% else %}
+                            {{ val }}
+                        {% endif %}
+                    </td>
+                    {% endfor %}
+                    {% if pk_col %}
+                    <td class="td-actions-cell">
+                        <div class="td-actions">
+                            <a href="{{ url_for('admin.edit_row', table_name=table_name, pk_val=row[pk_col]) }}" class="btn btn-secondary btn-sm">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                                Edit
+                            </a>
+                            <form method="POST" action="{{ url_for('admin.delete_row', table_name=table_name, pk_val=row[pk_col]) }}" onsubmit="return confirm('Delete this row?')">
+                                <button type="submit" class="btn btn-danger btn-sm">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>
+                                    Delete
+                                </button>
+                            </form>
+                        </div>
+                    </td>
+                    {% endif %}
+                </tr>
+                {% else %}
+                <tr><td colspan="{{ columns|length + 1 }}" style="text-align:center;color:#888;padding:32px">No rows found</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% if total_pages > 1 %}
+<div class="pagination">
+    {% if page > 1 %}
+        <a href="?page={{ page - 1 }}">&laquo; Prev</a>
+    {% endif %}
+    {% for p in range(1, total_pages + 1) %}
+        {% if p == page %}
+            <span>{{ p }}</span>
+        {% elif p == 1 or p == total_pages or (p >= page - 2 and p <= page + 2) %}
+            <a href="?page={{ p }}">{{ p }}</a>
+        {% elif p == page - 3 or p == page + 3 %}
+            <span style="border:none;background:none;color:#888">...</span>
+        {% endif %}
+    {% endfor %}
+    {% if page < total_pages %}
+        <a href="?page={{ page + 1 }}">Next &raquo;</a>
+    {% endif %}
+</div>
+{% endif %}
+
+<!-- Add Column Modal -->
+<div class="modal-overlay" id="addColModal">
+    <div class="modal">
+        <div class="modal-header">
+            <span class="modal-title">Add Column to {{ table_name }}</span>
+            <button class="modal-close" onclick="closeModal('addColModal')">&times;</button>
+        </div>
+        <form method="POST" action="{{ url_for('admin.add_column', table_name=table_name) }}">
+            <div class="form-group">
+                <label>Column Name</label>
+                <input type="text" name="col_name" placeholder="e.g. region_code" pattern="[A-Za-z0-9_]+" required>
+            </div>
+            <div class="form-group">
+                <label>Type</label>
+                <select name="col_type" id="addColType" onchange="toggleAddLength()">
+                    {% for group, types in mysql_types %}
+                    <optgroup label="{{ group }}">
+                        {% for t in types %}<option value="{{ t }}">{{ t }}</option>{% endfor %}
+                    </optgroup>
+                    {% endfor %}
+                </select>
+            </div>
+            <div id="addLengthWrap" style="display:none">
+                <div id="addVarcharWrap" class="form-group" style="display:none">
+                    <label>Length</label>
+                    <input type="number" name="col_length" placeholder="e.g. 255" min="1" max="65535">
+                </div>
+                <div id="addDecimalWrap" style="display:none">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Precision</label>
+                            <input type="number" name="col_precision" placeholder="e.g. 10" min="1" max="65">
+                        </div>
+                        <div class="form-group">
+                            <label>Scale</label>
+                            <input type="number" name="col_scale" placeholder="e.g. 2" min="0" max="30">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="checkbox-row" style="text-transform:none;font-size:13px">
+                    <input type="checkbox" name="required"> Required (NOT NULL)
+                </label>
+            </div>
+            <div style="display:flex;gap:10px;justify-content:flex-end">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('addColModal')">Cancel</button>
+                <button type="submit" class="btn btn-primary">Add Column</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+document.getElementById('addColModal').addEventListener('click', function(e) {
+    if (e.target === this) closeModal('addColModal');
+});
+
+function toggleAddLength() {
+    const t = document.getElementById('addColType').value;
+    const wrap = document.getElementById('addLengthWrap');
+    const vw = document.getElementById('addVarcharWrap');
+    const dw = document.getElementById('addDecimalWrap');
+    wrap.style.display = (t === 'VARCHAR' || t === 'CHAR' || t === 'DECIMAL') ? 'block' : 'none';
+    vw.style.display = (t === 'VARCHAR' || t === 'CHAR') ? 'block' : 'none';
+    dw.style.display = t === 'DECIMAL' ? 'block' : 'none';
+}
+</script>
+{% endblock %}

@@ -1,0 +1,56 @@
+{% extends "admin/base.html" %}
+{% block title %}{{ action }} Row — {{ table_name }}{% endblock %}
+{% block page_title %}{{ action }} Row in {{ table_name }}{% endblock %}
+
+{% block content %}
+<div style="margin-bottom:16px">
+    <a href="{{ url_for('admin.table_detail', table_name=table_name) }}" class="btn btn-secondary btn-sm">&#8592; Back to {{ table_name }}</a>
+</div>
+
+<div class="card" style="max-width:800px">
+    <div class="card-header">
+        <span class="card-title">{{ action }} Row</span>
+    </div>
+    <form method="POST" enctype="multipart/form-data">
+        {% for col in columns %}
+        <div class="form-group">
+            <label>
+                {{ col.Field }}
+                <small style="text-transform:none;font-weight:400;color:#555">&nbsp;{{ col.Type }}</small>
+                {% if col.Null == 'NO' %}<small style="color:#c9a84c;text-transform:none">&nbsp;required</small>{% endif %}
+            </label>
+            {% set val = row[col.Field] if row and row[col.Field] is not none else '' %}
+            {% if col.Field == 'LOGO_PATH' %}
+                {% if val %}
+                <div style="margin-bottom:8px">
+                    <img src="{{ url_for('static', filename=val) }}"
+                         style="height:48px;max-width:120px;object-fit:contain;border-radius:4px;border:1px solid #2e2e2e;padding:4px;background:#121212"
+                         onerror="this.style.display='none'">
+                    <span style="font-size:11px;color:#666;margin-left:8px">{{ val }}</span>
+                </div>
+                {% endif %}
+                <input type="file" name="LOGO_PATH_file" accept="image/*">
+                <input type="hidden" name="LOGO_PATH" value="{{ val }}">
+                <small style="color:#888;font-size:11px;margin-top:4px;display:block">Upload a new image to replace the current logo</small>
+            {% else %}
+                {% set itype = input_type_for(col) %}
+                {% if itype == 'textarea' %}
+                    <textarea name="{{ col.Field }}" rows="4">{{ val }}</textarea>
+                {% elif itype == 'number' %}
+                    <input type="number" name="{{ col.Field }}" value="{{ val }}">
+                {% elif itype == 'date' %}
+                    <input type="date" name="{{ col.Field }}" value="{{ val }}">
+                {% else %}
+                    <input type="text" name="{{ col.Field }}" value="{{ val }}">
+                {% endif %}
+            {% endif %}
+        </div>
+        {% endfor %}
+
+        <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:8px">
+            <a href="{{ url_for('admin.table_detail', table_name=table_name) }}" class="btn btn-secondary">Cancel</a>
+            <button type="submit" class="btn btn-primary">{{ action }} Row</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

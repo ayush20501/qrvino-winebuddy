@@ -1,0 +1,134 @@
+{% extends "admin/base.html" %}
+{% block title %}Tables{% endblock %}
+{% block page_title %}All Tables{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <span class="card-title">Database Tables</span>
+        <button class="btn btn-primary btn-sm" onclick="openModal('createTableModal')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            New Table
+        </button>
+    </div>
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Table Name</th>
+                    <th>Rows</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for table in tables %}
+                <tr>
+                    <td><a href="{{ url_for('admin.table_detail', table_name=table.name) }}">{{ table.name }}</a></td>
+                    <td><span class="badge badge-muted">{{ table.count }}</span></td>
+                    <td>
+                        <div class="td-actions">
+                            <a href="{{ url_for('admin.table_detail', table_name=table.name) }}" class="btn btn-secondary btn-sm">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                                View
+                            </a>
+                            <form method="POST" action="{{ url_for('admin.drop_table', table_name=table.name) }}" onsubmit="return confirm('Delete table \'{{ table.name }}\' and all its data? This cannot be undone.')">
+                                <button type="submit" class="btn btn-danger btn-sm">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+                                    Delete
+                                </button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Create Table Modal -->
+<div class="modal-overlay" id="createTableModal">
+    <div class="modal" style="max-width:600px">
+        <div class="modal-header">
+            <span class="modal-title">Create New Table</span>
+            <button class="modal-close" onclick="closeModal('createTableModal')">&times;</button>
+        </div>
+        <form method="POST" action="{{ url_for('admin.create_table') }}">
+            <div class="form-group">
+                <label>Table Name</label>
+                <input type="text" name="table_name" placeholder="e.g. wine_regions" required pattern="[A-Za-z0-9_]+">
+            </div>
+
+            <div class="form-group">
+                <label>Columns <small style="text-transform:none;color:#666">(an auto-increment id column is added automatically)</small></label>
+                <div id="colRows"></div>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="addColRow()" style="margin-top:8px">+ Add Column</button>
+            </div>
+
+            <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('createTableModal')">Cancel</button>
+                <button type="submit" class="btn btn-primary">Create Table</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+const typeOptions = `
+    {% for group, types in mysql_types %}
+    <optgroup label="{{ group }}">
+        {% for t in types %}<option value="{{ t }}">{{ t }}</option>{% endfor %}
+    </optgroup>
+    {% endfor %}
+`;
+
+let colIndex = 0;
+
+function addColRow() {
+    const i = colIndex++;
+    const wrap = document.createElement('div');
+    wrap.style.marginBottom = '10px';
+    wrap.innerHTML = `
+        <div style="display:grid;grid-template-columns:1fr 160px auto 36px;gap:8px;align-items:center">
+            <input type="text" name="col_name[]" placeholder="Column name" pattern="[A-Za-z0-9_]+" required>
+            <select name="col_type[]" onchange="toggleLength(this)">${typeOptions}</select>
+            <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:#888;white-space:nowrap;margin:0;text-transform:none">
+                <input type="checkbox" name="col_required[]" value="${i}"> Required
+            </label>
+            <button type="button" class="remove-col" onclick="this.closest('div').parentElement.remove()">&times;</button>
+        </div>
+        <div class="length-fields" style="display:none;margin-top:6px;padding-left:4px">
+            <div class="varchar-fields" style="display:none">
+                <input type="number" name="col_length[]" placeholder="Length (default 255)" min="1" max="65535" style="width:200px">
+            </div>
+            <div class="decimal-fields" style="display:none;display:flex;gap:8px">
+                <input type="number" name="col_precision[]" placeholder="Precision (default 10)" min="1" max="65" style="width:160px">
+                <input type="number" name="col_scale[]" placeholder="Scale (default 2)" min="0" max="30" style="width:160px">
+            </div>
+        </div>
+    `;
+    document.getElementById('colRows').appendChild(wrap);
+}
+
+function toggleLength(sel) {
+    const wrap = sel.closest('div').nextElementSibling;
+    const varchar = wrap.querySelector('.varchar-fields');
+    const decimal = wrap.querySelector('.decimal-fields');
+    const t = sel.value;
+    wrap.style.display = (t === 'VARCHAR' || t === 'CHAR' || t === 'DECIMAL') ? 'block' : 'none';
+    varchar.style.display = (t === 'VARCHAR' || t === 'CHAR') ? 'block' : 'none';
+    decimal.style.display = t === 'DECIMAL' ? 'flex' : 'none';
+}
+
+document.getElementById('createTableModal').addEventListener('click', function(e) {
+    if (e.target === this) closeModal('createTableModal');
+});
+
+addColRow();
+</script>
+{% endblock %}

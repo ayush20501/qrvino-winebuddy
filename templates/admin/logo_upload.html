@@ -1,0 +1,64 @@
+{% extends "admin/base.html" %}
+{% block title %}Logo Upload{% endblock %}
+{% block page_title %}Logo Upload{% endblock %}
+
+{% block content %}
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;max-width:900px">
+
+    <div class="card">
+        <div class="card-header">
+            <span class="card-title">Upload New Logo</span>
+        </div>
+        <form method="POST" enctype="multipart/form-data">
+            <div class="form-group">
+                <label>Customer</label>
+                <select name="customer_key" required>
+                    <option value="">Select a customer...</option>
+                    {% for c in customers %}
+                    <option value="{{ c.AI_CSTMR_KEY }}">{{ c.AI_CSTMR_NAME }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Logo Image (PNG/JPG)</label>
+                <input type="file" name="logo" accept="image/*" required>
+                <small style="color:#888;font-size:11px;margin-top:4px;display:block">Will be saved as logo_{key}.png</small>
+            </div>
+            <button type="submit" class="btn btn-primary" style="width:100%">Upload Logo</button>
+        </form>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <span class="card-title">Current Logos</span>
+        </div>
+        <div style="overflow-y:auto;max-height:400px">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Customer</th>
+                        <th>Logo</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for c in customers %}
+                    <tr>
+                        <td style="font-size:12px">{{ c.AI_CSTMR_NAME }}</td>
+                        <td>
+                            {% if c.LOGO_PATH %}
+                            <img src="{{ url_for('static', filename=c.LOGO_PATH) }}"
+                                 style="height:32px;max-width:80px;object-fit:contain;border-radius:3px"
+                                 onerror="this.style.display='none'">
+                            {% else %}
+                            <span style="color:#555;font-size:11px">none</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

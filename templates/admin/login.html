@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Login — WineBuddy</title>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Segoe UI', sans-serif; background: #0f0f0f; color: #e8e8e8; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+        .login-box { background: #1e1e1e; border: 1px solid #2e2e2e; border-radius: 10px; padding: 36px; width: 100%; max-width: 360px; }
+        .login-title { font-size: 20px; font-weight: 700; color: #c9a84c; margin-bottom: 4px; }
+        .login-sub { font-size: 12px; color: #888; margin-bottom: 28px; }
+        label { display: block; margin-bottom: 6px; font-size: 12px; color: #888; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; }
+        input[type=password] { width: 100%; padding: 10px 12px; background: #121212; border: 1px solid #2e2e2e; border-radius: 5px; color: #e8e8e8; font-size: 14px; outline: none; margin-bottom: 20px; }
+        input[type=password]:focus { border-color: #c9a84c; }
+        button { width: 100%; padding: 10px; background: #c9a84c; color: #000; border: none; border-radius: 5px; font-size: 14px; font-weight: 600; cursor: pointer; }
+        button:hover { background: #e2c06e; }
+        .error { background: rgba(192,57,43,0.15); border: 1px solid rgba(192,57,43,0.3); color: #e74c3c; padding: 10px 12px; border-radius: 5px; font-size: 13px; margin-bottom: 16px; }
+    </style>
+</head>
+<body>
+    <div class="login-box">
+        <div class="login-title">WineBuddy Admin</div>
+        <div class="login-sub">Enter your password to continue</div>
+        {% if error %}
+            <div class="error">{{ error }}</div>
+        {% endif %}
+        <form method="POST">
+            <label>Password</label>
+            <input type="password" name="password" autofocus autocomplete="current-password">
+            <button type="submit">Login</button>
+        </form>
+    </div>
+</body>
+</html>
