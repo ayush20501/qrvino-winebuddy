@@ -10,6 +10,17 @@
         Add Row
     </a>
     <button class="btn btn-secondary btn-sm" onclick="openModal('addColModal')">+ Add Column</button>
+    <a href="{{ url_for('admin.export_table', table_name=table_name) }}" class="btn btn-secondary btn-sm">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Export CSV
+    </a>
+    <form id="importForm" method="POST" action="{{ url_for('admin.import_table', table_name=table_name) }}" enctype="multipart/form-data" style="display:inline">
+        <input type="file" name="csv_file" id="csvFileInput" accept=".csv" style="display:none" onchange="document.getElementById('importForm').submit()">
+        <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('csvFileInput').click()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            Import CSV
+        </button>
+    </form>
     <span style="margin-left:auto;color:#888;font-size:12px">{{ total }} rows &nbsp;|&nbsp; Page {{ page }} of {{ total_pages }}</span>
 </div>
 
@@ -18,29 +29,17 @@
         <table>
             <thead>
                 <tr>
+                    {% if pk_col %}
+                    <th style="width:165px">Actions</th>
+                    {% endif %}
                     {% for col in columns %}
                     <th>{{ col.Field }}</th>
                     {% endfor %}
-                    {% if pk_col %}
-                    <th style="width:140px">Actions</th>
-                    {% endif %}
                 </tr>
             </thead>
             <tbody>
                 {% for row in rows %}
                 <tr>
-                    {% for col in columns %}
-                    {% set val = row[col.Field] if row[col.Field] is not none else '' %}
-                    <td title="{{ val }}">
-                        {% if col.Field == 'LOGO_PATH' and val %}
-                            <img src="{{ url_for('static', filename=val) }}"
-                                 style="height:36px;max-width:90px;object-fit:contain;border-radius:3px"
-                                 onerror="this.style.display='none'">
-                        {% else %}
-                            {{ val }}
-                        {% endif %}
-                    </td>
-                    {% endfor %}
                     {% if pk_col %}
                     <td class="td-actions-cell">
                         <div class="td-actions">
@@ -57,6 +56,18 @@
                         </div>
                     </td>
                     {% endif %}
+                    {% for col in columns %}
+                    {% set val = row[col.Field] if row[col.Field] is not none else '' %}
+                    <td title="{{ val }}">
+                        {% if col.Field == 'LOGO_PATH' and val %}
+                            <img src="{{ url_for('static', filename=val) }}"
+                                 style="height:36px;max-width:90px;object-fit:contain;border-radius:3px"
+                                 onerror="this.style.display='none'">
+                        {% else %}
+                            {{ val }}
+                        {% endif %}
+                    </td>
+                    {% endfor %}
                 </tr>
                 {% else %}
                 <tr><td colspan="{{ columns|length + 1 }}" style="text-align:center;color:#888;padding:32px">No rows found</td></tr>

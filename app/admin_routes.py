@@ -1,9 +1,11 @@
-from flask import Blueprint, render_template, request, redirect, url_for, session, flash
+from flask import Blueprint, render_template, request, redirect, url_for, session, flash, Response
 from app.config import create_database_connection
 from functools import wraps
 from werkzeug.utils import secure_filename
 import os
 import re
+import csv
+import io
 
 admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
 
@@ -345,6 +347,89 @@ def delete_row(table_name, pk_val):
         flash('Row deleted.', 'success')
     except Exception as e:
         flash(str(e), 'error')
+    finally:
+        cursor.close()
+        conn.close()
+    return redirect(url_for('admin.table_detail', table_name=table_name))
+
+@admin_bp.route('/table/<table_name>/export')
+@login_required
+def export_table(table_name):
+    if not safe_name(table_name):
+        flash('Invalid table name.', 'error')
+        return redirect(url_for('admin.dashboard'))
+    conn = create_database_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        columns = [c['Field'] for c in get_columns(cursor, table_name)]
+        cursor.execute(f'SELECT * FROM `{table_name}`')
+        rows = cursor.fetchall()
+        si = io.StringIO()
+        cw = csv.writer(si)
+        cw.writerow(columns)
+        for row in rows:
+            cw.writerow([row[col] for col in columns])
+        response = Response(si.getvalue().encode('utf-8-sig'), mimetype='text/csv')
+        response.headers['Content-Disposition'] = f'attachment; filename={table_name}.csv'
+        return response
+    except Exception as e:
+        flash(str(e), 'error')
+        return redirect(url_for('admin.table_detail', table_name=table_name))
+    finally:
+        cursor.close()
+        conn.close()
+
+@admin_bp.route('/table/<table_name>/import', methods=['POST'])
+@login_required
+def import_table(table_name):
+    if not safe_name(table_name):
+        flash('Invalid table name.', 'error')
+        return redirect(url_for('admin.dashboard'))
+    file = request.files.get('csv_file')
+    if not file or not file.filename.endswith('.csv'):
+        flash('Please upload a valid CSV file.', 'error')
+        return redirect(url_for('admin.table_detail', table_name=table_name))
+    conn = create_database_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        db_cols = {c['Field'] for c in get_columns(cursor, table_name)}
+        stream = io.StringIO(file.stream.read().decode('utf-8-sig'), newline=None)
+        csv_reader = csv.reader(stream)
+        headers = next(csv_reader, None)
+        if not headers:
+            flash('The uploaded CSV file is empty.', 'error')
+            return redirect(url_for('admin.table_detail', table_name=table_name))
+        valid_indices = []
+        valid_cols = []
+        for idx, h in enumerate(headers):
+            if h in db_cols:
+                valid_indices.append(idx)
+                valid_cols.append(h)
+        if not valid_cols:
+            flash('No matching columns found between CSV and database table.', 'error')
+            return redirect(url_for('admin.table_detail', table_name=table_name))
+        col_list = ', '.join(f'`{c}`' for c in valid_cols)
+        placeholders = ', '.join(['%s'] * len(valid_cols))
+        update_clause = ', '.join(f'`{c}`=VALUES(`{c}`)' for c in valid_cols)
+        sql = f'INSERT INTO `{table_name}` ({col_list}) VALUES ({placeholders}) ON DUPLICATE KEY UPDATE {update_clause}'
+        rows_inserted_or_updated = 0
+        for row in csv_reader:
+            if not row:
+                continue
+            row_vals = []
+            for idx in valid_indices:
+                val = row[idx] if idx < len(row) else ''
+                if val == '':
+                    row_vals.append(None)
+                else:
+                    row_vals.append(val)
+            cursor.execute(sql, row_vals)
+            rows_inserted_or_updated += 1
+        conn.commit()
+        flash(f'Successfully imported {rows_inserted_or_updated} rows.', 'success')
+    except Exception as e:
+        conn.rollback()
+        flash(f'Import failed: {str(e)}', 'error')
     finally:
         cursor.close()
         conn.close()

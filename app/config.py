@@ -4,6 +4,7 @@ from pathlib import Path
 import mysql.connector
 import openai
 from dotenv import load_dotenv
+from sshtunnel import SSHTunnelForwarder
 
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
@@ -22,5 +23,25 @@ DB_CONFIG = dict(
     connection_timeout=30,
 )
 
+tunnel = None
+
+def get_tunnel():
+    global tunnel
+    if tunnel is None:
+        tunnel = SSHTunnelForwarder(
+            ('ssh.pythonanywhere.com', 22),
+            ssh_username=os.getenv("SSH_USER"),
+            ssh_password=os.getenv("SSH_PASSWORD"),
+            remote_bind_address=(DB_CONFIG['host'], 3306)
+        )
+        tunnel.start()
+    return tunnel
+
 def create_database_connection():
+    if os.getenv("USE_SSH_TUNNEL") == "True":
+        t = get_tunnel()
+        config = DB_CONFIG.copy()
+        config['host'] = '127.0.0.1'
+        config['port'] = t.local_bind_port
+        return mysql.connector.connect(**config)
     return mysql.connector.connect(**DB_CONFIG)
