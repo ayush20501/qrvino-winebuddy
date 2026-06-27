@@ -23,7 +23,7 @@
         </div>
     </div>
 
-    <form method="POST" id="login_form" class="wb-chat-form" action="{{ url_for('customers.get_customer_recommendations') }}">
+    <form method="POST" id="login_form" class="wb-chat-form" action="{{ url_for('customers.show_palate_questionnaire') }}">
         <div class="form-group mb-3" id="wordSliderContainer" style="display: none;">
             <select class="wb-select" id="wordSlider" name="word_slider">
                 <option value="" disabled selected>Choose a recipe</option>

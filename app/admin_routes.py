@@ -155,6 +155,16 @@ def drop_table(table_name):
         conn.close()
     return redirect(url_for('admin.dashboard'))
 
+def parse_mysql_type(type_str):
+    type_str = type_str.upper()
+    if '(' in type_str:
+        base_type, parts = type_str.split('(', 1)
+        parts = parts.rstrip(')').split(',')
+        if len(parts) == 2:
+            return base_type, None, parts[0], parts[1]
+        return base_type, parts[0], None, None
+    return type_str, None, None, None
+
 @admin_bp.route('/table/<table_name>')
 @login_required
 def table_detail(table_name):
@@ -166,28 +176,53 @@ def table_detail(table_name):
     per_page = 20
     offset = (page - 1) * per_page
 
+    sort_col = request.args.get('sort', '').strip()
+    sort_order = request.args.get('order', 'asc').strip().upper()
+    if sort_order not in ('ASC', 'DESC'):
+        sort_order = 'ASC'
+
     conn = create_database_connection()
     cursor = conn.cursor(dictionary=True)
     columns = get_columns(cursor, table_name)
     pk_col = get_pk(columns)
 
+    valid_cols = {c['Field'] for c in columns}
+    if sort_col not in valid_cols:
+        sort_col = ''
+
     cursor.execute(f'SELECT COUNT(*) as cnt FROM `{table_name}`')
     total = cursor.fetchone()['cnt']
     total_pages = max(1, (total + per_page - 1) // per_page)
 
-    cursor.execute(f'SELECT * FROM `{table_name}` LIMIT %s OFFSET %s', (per_page, offset))
+    if sort_col:
+        query = f'SELECT * FROM `{table_name}` ORDER BY `{sort_col}` {sort_order} LIMIT %s OFFSET %s'
+    else:
+        query = f'SELECT * FROM `{table_name}` LIMIT %s OFFSET %s'
+
+    cursor.execute(query, (per_page, offset))
     rows = cursor.fetchall()
     cursor.close()
     conn.close()
 
+    parsed_columns = []
+    for col in columns:
+        col_type, length, precision, scale = parse_mysql_type(col['Type'])
+        col['ParsedType'] = col_type
+        col['ParsedLength'] = length or ''
+        col['ParsedPrecision'] = precision or ''
+        col['ParsedScale'] = scale or ''
+        parsed_columns.append(col)
+
     return render_template('admin/table_detail.html',
         table_name=table_name,
-        columns=columns,
+        columns=parsed_columns,
         rows=rows,
         pk_col=pk_col,
         page=page,
         total_pages=total_pages,
         total=total,
+        sort_col=sort_col,
+        sort_order=sort_order.lower(),
         mysql_types=MYSQL_TYPES
     )
 
@@ -434,4 +469,66 @@ def import_table(table_name):
         cursor.close()
         conn.close()
     return redirect(url_for('admin.table_detail', table_name=table_name))
+
+@admin_bp.route('/table/<table_name>/change-column', methods=['POST'])
+@login_required
+def change_column(table_name):
+    if not safe_name(table_name):
+        flash('Invalid table name.', 'error')
+        return redirect(url_for('admin.dashboard'))
+    old_name = request.form.get('old_name', '').strip()
+    new_name = request.form.get('new_name', '').strip()
+    col_type = request.form.get('col_type', 'VARCHAR').strip()
+    required = request.form.get('required') == 'on'
+    default_val = request.form.get('default_val', '')
+    if not safe_name(old_name) or not safe_name(new_name):
+        flash('Invalid column name.', 'error')
+        return redirect(url_for('admin.table_detail', table_name=table_name))
+    sql_type = build_col_type(
+        col_type,
+        request.form.get('col_length'),
+        request.form.get('col_precision'),
+        request.form.get('col_scale'),
+    )
+    nullable = 'NOT NULL' if required else 'NULL'
+    if default_val == '':
+        default_clause = 'DEFAULT NULL' if not required else ''
+    else:
+        default_clause = f"DEFAULT '{default_val}'"
+    conn = create_database_connection()
+    cursor = conn.cursor()
+    try:
+        sql = f'ALTER TABLE `{table_name}` CHANGE COLUMN `{old_name}` `{new_name}` {sql_type} {nullable} {default_clause}'
+        cursor.execute(sql)
+        conn.commit()
+        flash(f'Column "{old_name}" updated successfully.', 'success')
+    except Exception as e:
+        flash(str(e), 'error')
+    finally:
+        cursor.close()
+        conn.close()
+    return redirect(url_for('admin.table_detail', table_name=table_name) + '?active_tab=structure')
+
+@admin_bp.route('/table/<table_name>/drop-column', methods=['POST'])
+@login_required
+def drop_column(table_name):
+    if not safe_name(table_name):
+        flash('Invalid table name.', 'error')
+        return redirect(url_for('admin.dashboard'))
+    col_name = request.form.get('col_name', '').strip()
+    if not safe_name(col_name):
+        flash('Invalid column name.', 'error')
+        return redirect(url_for('admin.table_detail', table_name=table_name))
+    conn = create_database_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute(f'ALTER TABLE `{table_name}` DROP COLUMN `{col_name}`')
+        conn.commit()
+        flash(f'Column "{col_name}" dropped successfully.', 'success')
+    except Exception as e:
+        flash(str(e), 'error')
+    finally:
+        cursor.close()
+        conn.close()
+    return redirect(url_for('admin.table_detail', table_name=table_name) + '?active_tab=structure')
 

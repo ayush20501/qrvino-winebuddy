@@ -3,6 +3,27 @@
 {% block page_title %}{{ table_name }}{% endblock %}
 
 {% block content %}
+<style>
+.tab-btn {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    padding: 10px 20px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    border-bottom: 2px solid transparent;
+    transition: all 0.15s;
+}
+.tab-btn:hover {
+    color: var(--gold);
+}
+.tab-btn.active {
+    color: var(--gold);
+    border-bottom-color: var(--gold);
+}
+</style>
+
 <div style="display:flex;gap:10px;margin-bottom:16px;align-items:center">
     <a href="{{ url_for('admin.dashboard') }}" class="btn btn-secondary btn-sm">&#8592; Tables</a>
     <a href="{{ url_for('admin.add_row', table_name=table_name) }}" class="btn btn-primary btn-sm">
@@ -24,80 +45,154 @@
     <span style="margin-left:auto;color:#888;font-size:12px">{{ total }} rows &nbsp;|&nbsp; Page {{ page }} of {{ total_pages }}</span>
 </div>
 
-<div class="card" style="padding:0">
-    <div class="table-wrap">
-        <table>
-            <thead>
-                <tr>
-                    {% if pk_col %}
-                    <th style="width:165px">Actions</th>
-                    {% endif %}
-                    {% for col in columns %}
-                    <th>{{ col.Field }}</th>
-                    {% endfor %}
-                </tr>
-            </thead>
-            <tbody>
-                {% for row in rows %}
-                <tr>
-                    {% if pk_col %}
-                    <td class="td-actions-cell">
-                        <div class="td-actions">
-                            <a href="{{ url_for('admin.edit_row', table_name=table_name, pk_val=row[pk_col]) }}" class="btn btn-secondary btn-sm">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                                Edit
-                            </a>
-                            <form method="POST" action="{{ url_for('admin.delete_row', table_name=table_name, pk_val=row[pk_col]) }}" onsubmit="return confirm('Delete this row?')">
-                                <button type="submit" class="btn btn-danger btn-sm">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>
-                                    Delete
-                                </button>
-                            </form>
-                        </div>
-                    </td>
-                    {% endif %}
-                    {% for col in columns %}
-                    {% set val = row[col.Field] if row[col.Field] is not none else '' %}
-                    <td title="{{ val }}">
-                        {% if col.Field == 'LOGO_PATH' and val %}
-                            <img src="{{ url_for('static', filename=val) }}"
-                                 style="height:36px;max-width:90px;object-fit:contain;border-radius:3px"
-                                 onerror="this.style.display='none'">
-                        {% else %}
-                            {{ val }}
+<div style="display:flex;border-bottom:1px solid var(--border);margin-bottom:16px">
+    <button class="tab-btn active" id="tab-btn-browse" onclick="switchTab('browse')">Browse</button>
+    <button class="tab-btn" id="tab-btn-structure" onclick="switchTab('structure')">Structure</button>
+</div>
+
+<div id="tab-content-browse">
+    <div class="card" style="padding:0">
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        {% if pk_col %}
+                        <th style="width:165px">Actions</th>
                         {% endif %}
-                    </td>
+                        {% for col in columns %}
+                        <th>
+                            {% set next_order = 'desc' if sort_col == col.Field and sort_order == 'asc' else 'asc' %}
+                            <a href="?sort={{ col.Field }}&order={{ next_order }}&page=1" style="color:inherit;display:flex;align-items:center;justify-content:center;gap:4px">
+                                {{ col.Field }}
+                                {% if sort_col == col.Field %}
+                                    {% if sort_order == 'asc' %}
+                                        <span style="font-size:10px">&#9650;</span>
+                                    {% else %}
+                                        <span style="font-size:10px">&#9660;</span>
+                                    {% endif %}
+                                {% endif %}
+                            </a>
+                        </th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in rows %}
+                    <tr>
+                        {% if pk_col %}
+                        <td class="td-actions-cell">
+                            <div class="td-actions">
+                                <a href="{{ url_for('admin.edit_row', table_name=table_name, pk_val=row[pk_col]) }}" class="btn btn-secondary btn-sm">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                                    Edit
+                                </a>
+                                <form method="POST" action="{{ url_for('admin.delete_row', table_name=table_name, pk_val=row[pk_col]) }}" onsubmit="return confirm('Delete this row?')">
+                                    <button type="submit" class="btn btn-danger btn-sm">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>
+                                        Delete
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                        {% endif %}
+                        {% for col in columns %}
+                        {% set val = row[col.Field] if row[col.Field] is not none else '' %}
+                        <td title="{{ val }}">
+                            {% if col.Field == 'LOGO_PATH' and val %}
+                                <img src="{{ url_for('static', filename=val) }}"
+                                     style="height:36px;max-width:90px;object-fit:contain;border-radius:3px"
+                                     onerror="this.style.display='none'">
+                            {% else %}
+                                {{ val }}
+                            {% endif %}
+                        </td>
+                        {% endfor %}
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="{{ columns|length + 1 }}" style="text-align:center;color:#888;padding:32px">No rows found</td></tr>
                     {% endfor %}
-                </tr>
-                {% else %}
-                <tr><td colspan="{{ columns|length + 1 }}" style="text-align:center;color:#888;padding:32px">No rows found</td></tr>
-                {% endfor %}
-            </tbody>
-        </table>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    {% if total_pages > 1 %}
+    <div class="pagination">
+        {% if page > 1 %}
+            <a href="?page={{ page - 1 }}{% if sort_col %}&sort={{ sort_col }}&order={{ sort_order }}{% endif %}">&laquo; Prev</a>
+        {% endif %}
+        {% for p in range(1, total_pages + 1) %}
+            {% if p == page %}
+                <span>{{ p }}</span>
+            {% elif p == 1 or p == total_pages or (p >= page - 2 and p <= page + 2) %}
+                <a href="?page={{ p }}{% if sort_col %}&sort={{ sort_col }}&order={{ sort_order }}{% endif %}">{{ p }}</a>
+            {% elif p == page - 3 or p == page + 3 %}
+                <span style="border:none;background:none;color:#888">...</span>
+            {% endif %}
+        {% endfor %}
+        {% if page < total_pages %}
+            <a href="?page={{ page + 1 }}{% if sort_col %}&sort={{ sort_col }}&order={{ sort_order }}{% endif %}">Next &raquo;</a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+<div id="tab-content-structure" style="display:none">
+    <div class="card" style="padding:0">
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Field</th>
+                        <th>Type</th>
+                        <th>Null</th>
+                        <th>Key</th>
+                        <th>Default</th>
+                        <th>Extra</th>
+                        <th style="width:165px">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for col in columns %}
+                    <tr>
+                        <td><strong>{{ col.Field }}</strong></td>
+                        <td>{{ col.Type }}</td>
+                        <td>{{ col.Null }}</td>
+                        <td>{{ col.Key or '' }}</td>
+                        <td>{{ col.Default if col.Default is not none else '' }}</td>
+                        <td>{{ col.Extra or '' }}</td>
+                        <td class="td-actions-cell">
+                            <div class="td-actions">
+                                <button type="button" class="btn btn-secondary btn-sm change-col-btn"
+                                        data-field="{{ col.Field }}"
+                                        data-type="{{ col.ParsedType }}"
+                                        data-length="{{ col.ParsedLength }}"
+                                        data-precision="{{ col.ParsedPrecision }}"
+                                        data-scale="{{ col.ParsedScale }}"
+                                        data-null="{{ col.Null }}"
+                                        data-default="{{ col.Default if col.Default is not none else '' }}">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                                    Change
+                                </button>
+                                {% if col.Key != 'PRI' %}
+                                <form method="POST" action="{{ url_for('admin.drop_column', table_name=table_name) }}" onsubmit="return confirm('Drop column {{ col.Field }}? This cannot be undone!')">
+                                    <input type="hidden" name="col_name" value="{{ col.Field }}">
+                                    <button type="submit" class="btn btn-danger btn-sm">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>
+                                        Drop
+                                    </button>
+                                </form>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 
-{% if total_pages > 1 %}
-<div class="pagination">
-    {% if page > 1 %}
-        <a href="?page={{ page - 1 }}">&laquo; Prev</a>
-    {% endif %}
-    {% for p in range(1, total_pages + 1) %}
-        {% if p == page %}
-            <span>{{ p }}</span>
-        {% elif p == 1 or p == total_pages or (p >= page - 2 and p <= page + 2) %}
-            <a href="?page={{ p }}">{{ p }}</a>
-        {% elif p == page - 3 or p == page + 3 %}
-            <span style="border:none;background:none;color:#888">...</span>
-        {% endif %}
-    {% endfor %}
-    {% if page < total_pages %}
-        <a href="?page={{ page + 1 }}">Next &raquo;</a>
-    {% endif %}
-</div>
-{% endif %}
-
-<!-- Add Column Modal -->
 <div class="modal-overlay" id="addColModal">
     <div class="modal">
         <div class="modal-header">
@@ -149,6 +244,63 @@
         </form>
     </div>
 </div>
+
+<div class="modal-overlay" id="changeColModal">
+    <div class="modal">
+        <div class="modal-header">
+            <span class="modal-title">Change Column in {{ table_name }}</span>
+            <button class="modal-close" onclick="closeModal('changeColModal')">&times;</button>
+        </div>
+        <form method="POST" action="{{ url_for('admin.change_column', table_name=table_name) }}">
+            <input type="hidden" name="old_name" id="changeOldName">
+            <div class="form-group">
+                <label>Column Name</label>
+                <input type="text" name="new_name" id="changeNewName" placeholder="e.g. region_code" pattern="[A-Za-z0-9_]+" required>
+            </div>
+            <div class="form-group">
+                <label>Type</label>
+                <select name="col_type" id="changeColType" onchange="toggleChangeLength()">
+                    {% for group, types in mysql_types %}
+                    <optgroup label="{{ group }}">
+                        {% for t in types %}<option value="{{ t }}">{{ t }}</option>{% endfor %}
+                    </optgroup>
+                    {% endfor %}
+                </select>
+            </div>
+            <div id="changeLengthWrap" style="display:none">
+                <div id="changeVarcharWrap" class="form-group" style="display:none">
+                    <label>Length</label>
+                    <input type="number" name="col_length" id="changeColLength" placeholder="e.g. 255" min="1" max="65535">
+                </div>
+                <div id="changeDecimalWrap" style="display:none">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Precision</label>
+                            <input type="number" name="col_precision" id="changeColPrecision" placeholder="e.g. 10" min="1" max="65">
+                        </div>
+                        <div class="form-group">
+                            <label>Scale</label>
+                            <input type="number" name="col_scale" id="changeColScale" placeholder="e.g. 2" min="0" max="30">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Default Value</label>
+                <input type="text" name="default_val" id="changeDefaultVal" placeholder="e.g. NULL or some value">
+            </div>
+            <div class="form-group">
+                <label class="checkbox-row" style="text-transform:none;font-size:13px">
+                    <input type="checkbox" name="required" id="changeRequired"> Required (NOT NULL)
+                </label>
+            </div>
+            <div style="display:flex;gap:10px;justify-content:flex-end">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('changeColModal')">Cancel</button>
+                <button type="submit" class="btn btn-primary">Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
@@ -157,6 +309,9 @@ function openModal(id) { document.getElementById(id).classList.add('open'); }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
 document.getElementById('addColModal').addEventListener('click', function(e) {
     if (e.target === this) closeModal('addColModal');
+});
+document.getElementById('changeColModal').addEventListener('click', function(e) {
+    if (e.target === this) closeModal('changeColModal');
 });
 
 function toggleAddLength() {
@@ -168,5 +323,65 @@ function toggleAddLength() {
     vw.style.display = (t === 'VARCHAR' || t === 'CHAR') ? 'block' : 'none';
     dw.style.display = t === 'DECIMAL' ? 'block' : 'none';
 }
+
+function toggleChangeLength() {
+    const t = document.getElementById('changeColType').value;
+    const wrap = document.getElementById('changeLengthWrap');
+    const vw = document.getElementById('changeVarcharWrap');
+    const dw = document.getElementById('changeDecimalWrap');
+    wrap.style.display = (t === 'VARCHAR' || t === 'CHAR' || t === 'DECIMAL') ? 'block' : 'none';
+    vw.style.display = (t === 'VARCHAR' || t === 'CHAR') ? 'block' : 'none';
+    dw.style.display = t === 'DECIMAL' ? 'block' : 'none';
+}
+
+function openChangeModal(field, type, length, precision, scale, nullable, defaultVal) {
+    document.getElementById('changeOldName').value = field;
+    document.getElementById('changeNewName').value = field;
+    document.getElementById('changeColType').value = type;
+    document.getElementById('changeColLength').value = length;
+    document.getElementById('changeColPrecision').value = precision;
+    document.getElementById('changeColScale').value = scale;
+    document.getElementById('changeRequired').checked = (nullable === 'NO');
+    document.getElementById('changeDefaultVal').value = defaultVal;
+    toggleChangeLength();
+    openModal('changeColModal');
+}
+
+function switchTab(tabId) {
+    const browseBtn = document.getElementById('tab-btn-browse');
+    const structBtn = document.getElementById('tab-btn-structure');
+    const browseContent = document.getElementById('tab-content-browse');
+    const structContent = document.getElementById('tab-content-structure');
+    if (tabId === 'browse') {
+        browseBtn.classList.add('active');
+        structBtn.classList.remove('active');
+        browseContent.style.display = 'block';
+        structContent.style.display = 'none';
+    } else {
+        browseBtn.classList.remove('active');
+        structBtn.classList.add('active');
+        browseContent.style.display = 'none';
+        structContent.style.display = 'block';
+    }
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+    const params = new URLSearchParams(window.location.search);
+    const activeTab = params.get('active_tab') || 'browse';
+    switchTab(activeTab);
+
+    document.querySelectorAll('.change-col-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const field = this.getAttribute('data-field');
+            const type = this.getAttribute('data-type');
+            const length = this.getAttribute('data-length');
+            const precision = this.getAttribute('data-precision');
+            const scale = this.getAttribute('data-scale');
+            const nullable = this.getAttribute('data-null');
+            const defaultVal = this.getAttribute('data-default');
+            openChangeModal(field, type, length, precision, scale, nullable, defaultVal);
+        });
+    });
+});
 </script>
 {% endblock %}

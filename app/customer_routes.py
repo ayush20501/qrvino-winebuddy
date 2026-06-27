@@ -164,6 +164,60 @@ def show_image(slug):
         if db_connection:
             db_connection.close()
 
+@customers_bp.route('/customer/palate', methods=['GET', 'POST'])
+def show_palate_questionnaire():
+    if request.method == 'GET':
+        return redirect('/')
+    user_input = request.form.get("user_input", "")
+    wine_option = request.form.get("wine_option", "1")
+    customer_name = request.form.get("customer_name", "")
+    db_connection = create_database_connection()
+    cursor = db_connection.cursor(dictionary=True, buffered=True)
+    try:
+        cursor.execute("SELECT * FROM Palate_Type WHERE Actv_Ind = 'Y' ORDER BY `Key` ASC")
+        palate_types = cursor.fetchall()
+        cursor.execute("SELECT * FROM Palate WHERE Actv_Ind = 'Y'")
+        palates = cursor.fetchall()
+        palate_map = {}
+        for p in palates:
+            pt_id = p['Palate_Type_Id']
+            if pt_id not in palate_map:
+                palate_map[pt_id] = []
+            palate_map[pt_id].append(p)
+        questions = []
+        for pt in palate_types:
+            options = palate_map.get(pt['id'], [])
+            if options:
+                questions.append({
+                    'id': pt['id'],
+                    'name': pt['Name'],
+                    'options': options
+                })
+        if not questions:
+            return get_customer_recommendations()
+        query = "SELECT LOGO_PATH, BEER_IND, CANA_IND FROM ai_cstmr WHERE AI_CSTMR_START_TXT LIKE %s"
+        cursor.execute(query, ('%' + customer_name + '%',))
+        cstmr = cursor.fetchone()
+        logo_path = cstmr['LOGO_PATH'] if cstmr else None
+        theme_color = 'N'
+        if cstmr:
+            if cstmr['BEER_IND'] == 'Y':
+                theme_color = 'G'
+            elif cstmr['CANA_IND'] == 'Y':
+                theme_color = 'Y'
+        return render_template('customer_palate.html',
+                               questions=questions,
+                               user_input=user_input,
+                               wine_option=wine_option,
+                               customer_name=customer_name,
+                               logo_path=logo_path,
+                               color=theme_color)
+    except Exception as e:
+        return f"Error: {str(e)}"
+    finally:
+        cursor.close()
+        db_connection.close()
+
 @customers_bp.route('/customer/recommendations', methods=['POST'])
 def get_customer_recommendations():
     db_connection = None
@@ -177,24 +231,44 @@ def get_customer_recommendations():
         user_input = request.form.get("user_input")
         wine_option = request.form.get('wine_option')
         customer_name = request.form.get('customer_name')
-        
         if not wine_option or not str(wine_option).isdigit() or not (1 <= int(wine_option) <= 10):
             wine_option = "1"
-            
         db_connection = create_database_connection()
         cursor = db_connection.cursor(dictionary=True, buffered=True)
-
+        cursor.execute("SELECT * FROM Palate_Type WHERE Actv_Ind = 'Y' ORDER BY `Key` ASC")
+        palate_types = cursor.fetchall()
+        gender_desc = ""
+        other_descs = []
+        for pt in palate_types:
+            ans_id = request.form.get(f"palate_q_{pt['id']}")
+            if ans_id:
+                cursor.execute("SELECT Description FROM Palate WHERE id = %s", (ans_id,))
+                opt_row = cursor.fetchone()
+                if opt_row:
+                    desc = opt_row['Description'].strip()
+                    if pt['Name'].strip().lower() == 'gender':
+                        gender_desc = desc
+                    else:
+                        other_descs.append(desc)
+        palate_prefix = ""
+        if gender_desc and other_descs:
+            palate_prefix = f"I'm {gender_desc},, I like: {', '.join(other_descs)}.. .."
+        elif gender_desc:
+            palate_prefix = f"I'm {gender_desc}.. .."
+        elif other_descs:
+            palate_prefix = f"I like: {', '.join(other_descs)}.. .."
         query = "SELECT RSTRNT_IND, NO_WINE_BEER_IND FROM ai_cstmr WHERE AI_CSTMR_START_TXT LIKE %s"
         cursor.execute(query, ('%' + customer_name + '%',))
         rstrnt_result = cursor.fetchone()
         rstrnt_ind = rstrnt_result['RSTRNT_IND'] if rstrnt_result else 'N'
         no_wine_beer_ind = rstrnt_result['NO_WINE_BEER_IND'] if rstrnt_result else 'N'
-
         prompt_column = f"PROMPT_TXT_{wine_option}"
         query = f"SELECT {prompt_column} FROM ai_cstmr WHERE AI_CSTMR_START_TXT LIKE %s"
         cursor.execute(query, ('%' + customer_name + '%',))
         cstmr_result = cursor.fetchone()
         prompt_result = str(cstmr_result[prompt_column]) if cstmr_result else ""
+        if palate_prefix:
+            prompt_result = palate_prefix + " " + prompt_result
 
         theme_color = session.get('theme_color', 'N')
 

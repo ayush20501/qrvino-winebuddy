@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+{% block title %}WineBuddy AI — Palate Preferences{% endblock %}
+{% block extra_head %}
+<script src="https://code.jquery.com/jquery-3.7.1.min.js" crossorigin="anonymous"></script>
+<link rel="icon" href="{{ url_for('static', filename='images/favicon.ico') }}" type="image/x-icon">
+<style>
+.wb-palate-card {
+    background: var(--card-bg);
+    border: 1px solid rgba(201, 168, 76, 0.4);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 24px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+}
+.wb-question-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--gold);
+    margin-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 8px;
+}
+.wb-options-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+</style>
+{% endblock %}
+{% block body %}
+<div id="loaderOverlay" class="wb-loader-overlay wb-hidden">
+    <div class="wb-loader">
+        <div class="wb-loader-dots"><span></span><span></span><span></span></div>
+        <span class="wb-loader-label" id="loaderMessage">Preparing recommendations</span>
+    </div>
+</div>
+
+<div class="wb-page wb-page-chat">
+    <div class="wb-chat-hero">
+        {% if logo_path %}
+        <img src="{{ url_for('static', filename=logo_path) }}" alt="WineBuddy AI Assistant">
+        {% endif %}
+        <div>
+            <span class="wb-intro-line">Palate Preferences</span>
+            <p class="wb-tagline mb-0">Tell us about your taste preferences to help us choose the perfect wine.</p>
+        </div>
+    </div>
+
+    <form method="POST" id="palate_form" class="wb-chat-form" action="{{ url_for('customers.get_customer_recommendations') }}">
+        <input type="hidden" name="user_input" value="{{ user_input }}">
+        <input type="hidden" name="wine_option" value="{{ wine_option }}">
+        <input type="hidden" name="customer_name" value="{{ customer_name }}">
+
+        {% for q in questions %}
+        <div class="wb-palate-card">
+            <h3 class="wb-question-title">{{ q.name }}</h3>
+            <div class="wb-options-list">
+                {% for opt in q.options %}
+                <div class="form-check wb-option-row">
+                    <label class="form-check-label" for="palate_opt_{{ opt.id }}">
+                        <span class="wb-option-text">{{ opt.Description }}</span>
+                        <input class="form-check-input" type="radio" name="palate_q_{{ q.id }}" id="palate_opt_{{ opt.id }}" value="{{ opt.id }}" required>
+                    </label>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
+
+        <div class="wb-actions-row" style="justify-content: flex-end;">
+            <div class="wb-actions-continue">
+                <button type="submit" class="wb-btn wb-btn-primary">Continue</button>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+    $(document).ready(function () {
+        $("#palate_form").submit(function () {
+            $("#loaderOverlay").removeClass('wb-hidden');
+            startLoaderMessages();
+        });
+    });
+
+    var body = document.body;
+    var color_value = "{{ color }}";
+    if (color_value === "Y") {
+        body.classList.add("wb-theme-green");
+    } else if (color_value === "G") {
+        body.classList.add("wb-theme-beer");
+    }
+
+    var loaderMessages = color_value === "G" ? [
+        "Consulting the cicerone...",
+        "Checking the hop profiles...",
+        "Pouring the perfect pint...",
+        "Analyzing the malt character...",
+        "Matching styles to your dish...",
+        "Reading the tasting notes...",
+        "Almost ready to serve..."
+    ] : [
+        "Consulting the sommelier...",
+        "Analyzing flavor profiles...",
+        "Pairing the perfect vintage...",
+        "Swirling the virtual glass...",
+        "Decanting the best options...",
+        "Reading the tasting notes...",
+        "Almost ready to serve..."
+    ];
+
+    var loaderInterval = null;
+
+    function startLoaderMessages() {
+        var idx = 0;
+        var el = document.getElementById("loaderMessage");
+        el.textContent = loaderMessages[0];
+        loaderInterval = setInterval(function () {
+            idx = (idx + 1) % loaderMessages.length;
+            el.textContent = loaderMessages[idx];
+        }, 2500);
+    }
+</script>
+{% endblock %}
