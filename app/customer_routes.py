@@ -174,10 +174,22 @@ def show_palate_questionnaire():
     db_connection = create_database_connection()
     cursor = db_connection.cursor(dictionary=True, buffered=True)
     try:
-        cursor.execute("SELECT * FROM Palate_Type WHERE Actv_Ind = 'Y' ORDER BY `Key` ASC")
-        palate_types = cursor.fetchall()
-        cursor.execute("SELECT * FROM Palate WHERE Actv_Ind = 'Y'")
-        palates = cursor.fetchall()
+        query = "SELECT LOGO_PATH, BEER_IND, CANA_IND FROM ai_cstmr WHERE AI_CSTMR_START_TXT LIKE %s"
+        cursor.execute(query, ('%' + customer_name + '%',))
+        cstmr = cursor.fetchone()
+        is_beer = False
+        if cstmr and cstmr['BEER_IND'] == 'Y':
+            is_beer = True
+        if is_beer:
+            cursor.execute("SELECT * FROM Palate_Type WHERE Actv_Ind = 'Y' AND BEER_IND = 'Y' ORDER BY `id` ASC")
+            palate_types = cursor.fetchall()
+            cursor.execute("SELECT * FROM Palate WHERE Actv_Ind = 'Y' AND BEER_IND = 'Y'")
+            palates = cursor.fetchall()
+        else:
+            cursor.execute("SELECT * FROM Palate_Type WHERE Actv_Ind = 'Y' AND (BEER_IND IS NULL OR BEER_IND != 'Y') ORDER BY `id` ASC")
+            palate_types = cursor.fetchall()
+            cursor.execute("SELECT * FROM Palate WHERE Actv_Ind = 'Y' AND (BEER_IND IS NULL OR BEER_IND != 'Y')")
+            palates = cursor.fetchall()
         palate_map = {}
         for p in palates:
             pt_id = p['Palate_Type_Id']
@@ -195,9 +207,6 @@ def show_palate_questionnaire():
                 })
         if not questions:
             return get_customer_recommendations()
-        query = "SELECT LOGO_PATH, BEER_IND, CANA_IND FROM ai_cstmr WHERE AI_CSTMR_START_TXT LIKE %s"
-        cursor.execute(query, ('%' + customer_name + '%',))
-        cstmr = cursor.fetchone()
         logo_path = cstmr['LOGO_PATH'] if cstmr else None
         theme_color = 'N'
         if cstmr:
@@ -235,7 +244,17 @@ def get_customer_recommendations():
             wine_option = "1"
         db_connection = create_database_connection()
         cursor = db_connection.cursor(dictionary=True, buffered=True)
-        cursor.execute("SELECT * FROM Palate_Type WHERE Actv_Ind = 'Y' ORDER BY `Key` ASC")
+        prompt_column = f"PROMPT_TXT_{wine_option}"
+        query = f"SELECT BEER_IND, RSTRNT_IND, NO_WINE_BEER_IND, {prompt_column} FROM ai_cstmr WHERE AI_CSTMR_START_TXT LIKE %s"
+        cursor.execute(query, ('%' + customer_name + '%',))
+        cstmr_result = cursor.fetchone()
+        is_beer = False
+        if cstmr_result and cstmr_result['BEER_IND'] == 'Y':
+            is_beer = True
+        if is_beer:
+            cursor.execute("SELECT * FROM Palate_Type WHERE Actv_Ind = 'Y' AND BEER_IND = 'Y' ORDER BY `id` ASC")
+        else:
+            cursor.execute("SELECT * FROM Palate_Type WHERE Actv_Ind = 'Y' AND (BEER_IND IS NULL OR BEER_IND != 'Y') ORDER BY `id` ASC")
         palate_types = cursor.fetchall()
         gender_desc = ""
         other_descs = []
@@ -257,16 +276,9 @@ def get_customer_recommendations():
             palate_prefix = f"I'm {gender_desc}.. .."
         elif other_descs:
             palate_prefix = f"I like: {', '.join(other_descs)}.. .."
-        query = "SELECT RSTRNT_IND, NO_WINE_BEER_IND FROM ai_cstmr WHERE AI_CSTMR_START_TXT LIKE %s"
-        cursor.execute(query, ('%' + customer_name + '%',))
-        rstrnt_result = cursor.fetchone()
-        rstrnt_ind = rstrnt_result['RSTRNT_IND'] if rstrnt_result else 'N'
-        no_wine_beer_ind = rstrnt_result['NO_WINE_BEER_IND'] if rstrnt_result else 'N'
-        prompt_column = f"PROMPT_TXT_{wine_option}"
-        query = f"SELECT {prompt_column} FROM ai_cstmr WHERE AI_CSTMR_START_TXT LIKE %s"
-        cursor.execute(query, ('%' + customer_name + '%',))
-        cstmr_result = cursor.fetchone()
-        prompt_result = str(cstmr_result[prompt_column]) if cstmr_result else ""
+        rstrnt_ind = cstmr_result['RSTRNT_IND'] if cstmr_result else 'N'
+        no_wine_beer_ind = cstmr_result['NO_WINE_BEER_IND'] if cstmr_result else 'N'
+        prompt_result = str(cstmr_result[prompt_column]) if (cstmr_result and cstmr_result[prompt_column]) else ""
         if palate_prefix:
             prompt_result = palate_prefix + " " + prompt_result
 

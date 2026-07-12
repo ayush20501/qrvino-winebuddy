@@ -43,6 +43,7 @@
         <div>
             <span class="wb-intro-line">Palate Preferences</span>
             <p class="wb-tagline mb-0">Tell us about your taste preferences to help us choose the perfect wine.</p>
+            <p class="wb-tagline" style="font-size: 14px; opacity: 0.8; margin-top: 4px;">All choices are optional</p>
         </div>
     </div>
 
@@ -59,7 +60,7 @@
                 <div class="form-check wb-option-row">
                     <label class="form-check-label" for="palate_opt_{{ opt.id }}">
                         <span class="wb-option-text">{{ opt.Description }}</span>
-                        <input class="form-check-input" type="radio" name="palate_q_{{ q.id }}" id="palate_opt_{{ opt.id }}" value="{{ opt.id }}" required>
+                        <input class="form-check-input" type="radio" name="palate_q_{{ q.id }}" id="palate_opt_{{ opt.id }}" value="{{ opt.id }}">
                     </label>
                 </div>
                 {% endfor %}

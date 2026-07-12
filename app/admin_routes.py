@@ -36,6 +36,43 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated
 
+def dump_database():
+    conn = create_database_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute("SHOW TABLES")
+        tables = [list(r.values())[0] for r in cursor.fetchall()]
+        sql_lines = []
+        for table in tables:
+            cursor.execute(f"SHOW CREATE TABLE `{table}`")
+            create_result = cursor.fetchone()
+            create_sql = list(create_result.values())[1]
+            sql_lines.append(f"DROP TABLE IF EXISTS `{table}`;")
+            sql_lines.append(create_sql + ";\n")
+            cursor.execute(f"SELECT * FROM `{table}`")
+            rows = cursor.fetchall()
+            if rows:
+                for row in rows:
+                    cols = []
+                    vals = []
+                    for k, v in row.items():
+                        cols.append(f"`{k}`")
+                        if v is None:
+                            vals.append("NULL")
+                        elif isinstance(v, (int, float)):
+                            vals.append(str(v))
+                        else:
+                            escaped_v = str(v).replace("'", "''").replace("\\", "\\\\")
+                            vals.append(f"'{escaped_v}'")
+                    cols_str = ", ".join(cols)
+                    vals_str = ", ".join(vals)
+                    sql_lines.append(f"INSERT INTO `{table}` ({cols_str}) VALUES ({vals_str});")
+                sql_lines.append("\n")
+        return "\n".join(sql_lines)
+    finally:
+        cursor.close()
+        conn.close()
+
 def safe_name(name):
     return bool(name) and bool(re.match(r'^[A-Za-z0-9_]+$', str(name)))
 
@@ -92,6 +129,18 @@ def dashboard():
     cursor.close()
     conn.close()
     return render_template('admin/dashboard.html', tables=tables, mysql_types=MYSQL_TYPES)
+
+@admin_bp.route('/backup')
+@login_required
+def backup_database():
+    try:
+        sql_content = dump_database()
+        response = Response(sql_content, mimetype='text/sql')
+        response.headers['Content-Disposition'] = 'attachment; filename=db_backup.sql'
+        return response
+    except Exception as e:
+        flash(f"Backup failed: {str(e)}", 'error')
+        return redirect(url_for('admin.dashboard'))
 
 @admin_bp.route('/table/create', methods=['POST'])
 @login_required
