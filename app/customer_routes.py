@@ -1,8 +1,6 @@
-from flask import Flask, render_template, request, redirect, g, Blueprint, session
+from flask import render_template, request, redirect, Blueprint, session
 from app.config import openai, create_database_connection, OPENAI_MODEL
 import re
-import mysql.connector
-from bs4 import BeautifulSoup
 import os
 import logging
 import time
@@ -56,12 +54,13 @@ def show_image(slug):
         result = cursor.fetchone()
 
         if result is not None and result['CANA_IND'] == 'Y':
-            query = "SELECT RSTRNT_IND,MEAT_CUT_IND,PRIME_IND,AI_CSTMR_KEY,LOGO_PATH, CHTBX_FRST_LINE, CHTBX_SCND_LINE, OPTION_1_TXT, OPTION_2_TXT, OPTION_3_TXT, OPTION_4_TXT, OPTION_5_TXT, OPTION_6_TXT, OPTION_7_TXT, OPTION_8_TXT, OPTION_9_TXT, OPTION_10_TXT FROM ai_cstmr WHERE AI_CSTMR_START_TXT LIKE %s"
+            query = "SELECT RSTRNT_IND,RSTRNT_SCAN_IND,MEAT_CUT_IND,PRIME_IND,AI_CSTMR_KEY,LOGO_PATH, CHTBX_FRST_LINE, CHTBX_SCND_LINE, OPTION_1_TXT, OPTION_2_TXT, OPTION_3_TXT, OPTION_4_TXT, OPTION_5_TXT, OPTION_6_TXT, OPTION_7_TXT, OPTION_8_TXT, OPTION_9_TXT, OPTION_10_TXT FROM ai_cstmr WHERE AI_CSTMR_START_TXT LIKE %s"
             cursor.execute(query,('%' + page_name + '%',))
             result = cursor.fetchone()
             if result is not None:
                 meat_cut_ind = result['MEAT_CUT_IND']
                 rstrnt_ind = result['RSTRNT_IND']
+                rstrnt_scan_ind = result.get('RSTRNT_SCAN_IND') or 'N'
                 prime_ind = result['PRIME_IND']
                 logo_path = result['LOGO_PATH']
                 first_line = result['CHTBX_FRST_LINE']
@@ -78,18 +77,19 @@ def show_image(slug):
                 if meat_cut_ind == 'Y':
                     second_line_from_database = re.sub(r'\*([^\*]+)\*', make_clickable, second_line_from_database)
                 session['theme_color'] = 'Y'
-                return render_template('customer_chat.html', logo_path=logo_path, first_line=first_line, second_line=second_line_from_database,customer_name=page_name, color = "Y", options = options_list, rstrnt_ind=rstrnt_ind, prime_ind=prime_ind)
+                return render_template('customer_chat.html', logo_path=logo_path, first_line=first_line, second_line=second_line_from_database,customer_name=page_name, color = "Y", options = options_list, rstrnt_ind=rstrnt_ind, rstrnt_scan_ind=rstrnt_scan_ind, prime_ind=prime_ind)
             else:
                 return {'page_name': page_name}
 
         elif result is not None and result['BEER_IND'] == 'Y':
-            query = "SELECT RSTRNT_IND,MEAT_CUT_IND,PRIME_IND,AI_CSTMR_KEY,LOGO_PATH, CHTBX_FRST_LINE, CHTBX_SCND_LINE, OPTION_1_TXT, OPTION_2_TXT, OPTION_3_TXT, OPTION_4_TXT, OPTION_5_TXT, OPTION_6_TXT, OPTION_7_TXT, OPTION_8_TXT, OPTION_9_TXT, OPTION_10_TXT FROM ai_cstmr WHERE AI_CSTMR_START_TXT LIKE %s"
+            query = "SELECT RSTRNT_IND,RSTRNT_SCAN_IND,MEAT_CUT_IND,PRIME_IND,AI_CSTMR_KEY,LOGO_PATH, CHTBX_FRST_LINE, CHTBX_SCND_LINE, OPTION_1_TXT, OPTION_2_TXT, OPTION_3_TXT, OPTION_4_TXT, OPTION_5_TXT, OPTION_6_TXT, OPTION_7_TXT, OPTION_8_TXT, OPTION_9_TXT, OPTION_10_TXT FROM ai_cstmr WHERE AI_CSTMR_START_TXT LIKE %s"
             cursor.execute(query,('%' + page_name + '%',))
             result = cursor.fetchone()
 
             if result is not None:
                 meat_cut_ind = result['MEAT_CUT_IND']
                 rstrnt_ind = result['RSTRNT_IND']
+                rstrnt_scan_ind = result.get('RSTRNT_SCAN_IND') or 'N'
                 prime_ind = result['PRIME_IND']
                 logo_path = result['LOGO_PATH']
                 first_line = result['CHTBX_FRST_LINE']
@@ -112,16 +112,17 @@ def show_image(slug):
 
                 matches_list = sorted(matches_list)
                 session['theme_color'] = 'G'
-                return render_template('customer_chat.html',intro_text=intro_text, matches_list = matches_list,logo_path=logo_path, first_line=first_line, second_line=second_line_from_database,customer_name=page_name, color = "G", options = options_list, rstrnt_ind=rstrnt_ind, prime_ind=prime_ind)
+                return render_template('customer_chat.html',intro_text=intro_text, matches_list = matches_list,logo_path=logo_path, first_line=first_line, second_line=second_line_from_database,customer_name=page_name, color = "G", options = options_list, rstrnt_ind=rstrnt_ind, rstrnt_scan_ind=rstrnt_scan_ind, prime_ind=prime_ind)
             else:
                 return {'page_name': page_name}
         else:
-            query = "SELECT RSTRNT_IND,MEAT_CUT_IND,PRIME_IND,AI_CSTMR_KEY,LOGO_PATH, CHTBX_FRST_LINE, CHTBX_SCND_LINE, OPTION_1_TXT, OPTION_2_TXT, OPTION_3_TXT, OPTION_4_TXT, OPTION_5_TXT, OPTION_6_TXT, OPTION_7_TXT, OPTION_8_TXT, OPTION_9_TXT, OPTION_10_TXT FROM ai_cstmr WHERE AI_CSTMR_START_TXT LIKE %s"
+            query = "SELECT RSTRNT_IND,RSTRNT_SCAN_IND,MEAT_CUT_IND,PRIME_IND,AI_CSTMR_KEY,LOGO_PATH, CHTBX_FRST_LINE, CHTBX_SCND_LINE, OPTION_1_TXT, OPTION_2_TXT, OPTION_3_TXT, OPTION_4_TXT, OPTION_5_TXT, OPTION_6_TXT, OPTION_7_TXT, OPTION_8_TXT, OPTION_9_TXT, OPTION_10_TXT FROM ai_cstmr WHERE AI_CSTMR_START_TXT LIKE %s"
             cursor.execute(query,('%' + page_name + '%',))
             result = cursor.fetchone()
             if result is not None:
                 meat_cut_ind = result['MEAT_CUT_IND']
                 rstrnt_ind = result['RSTRNT_IND']
+                rstrnt_scan_ind = result.get('RSTRNT_SCAN_IND') or 'N'
                 prime_ind = result['PRIME_IND']
                 logo_path = result['LOGO_PATH']
                 first_line = result['CHTBX_FRST_LINE']
@@ -153,7 +154,7 @@ def show_image(slug):
                 matches_list = sorted(matches_list)
                 session['theme_color'] = 'N'
                 return render_template('customer_chat.html',intro_text=intro_text, matches_list = matches_list, ai_cstmr_key = ai_cstmr_key, logo_path=logo_path, image_url = image_url,
-                first_line=first_line, second_line=second_line_from_database,customer_name=page_name, color = "N", options = options_list, rstrnt_ind=rstrnt_ind, prime_ind=prime_ind)
+                first_line=first_line, second_line=second_line_from_database,customer_name=page_name, color = "N", options = options_list, rstrnt_ind=rstrnt_ind, rstrnt_scan_ind=rstrnt_scan_ind, prime_ind=prime_ind)
             else:
                 return {'page_name': page_name}
     except Exception as e:
@@ -164,6 +165,105 @@ def show_image(slug):
         if db_connection:
             db_connection.close()
 
+@customers_bp.route('/customer/scan_bottle', methods=['POST'])
+def scan_bottle():
+    import base64
+    import io
+    import requests
+    from PIL import Image
+
+    if 'file' not in request.files:
+        return {'error': 'No file uploaded'}, 400
+    file = request.files['file']
+    if file.filename == '':
+        return {'error': 'No file selected'}, 400
+
+    image_bytes = file.read()
+    api_key = os.getenv("VISION_API_KEY")
+    if not api_key:
+        return {'error': 'VISION_API_KEY not configured'}, 500
+
+    encoded_original = base64.b64encode(image_bytes).decode("utf-8")
+
+    url = f"https://vision.googleapis.com/v1/images:annotate?key={api_key}"
+    payload = {
+        "requests": [{
+            "image": {"content": encoded_original},
+            "features": [{"type": "OBJECT_LOCALIZATION"}]
+        }]
+    }
+    response = requests.post(url, data=json.dumps(payload), headers={"Content-Type": "application/json"})
+    localization_result = response.json().get("responses", [{}])[0]
+    objects = localization_result.get("localizedObjectAnnotations", [])
+
+    if not objects:
+        cropped_encoded = encoded_original
+    else:
+        img = Image.open(io.BytesIO(image_bytes))
+        width, height = img.size
+
+        target_object = None
+        max_area = 0
+
+        for obj in objects:
+            vertices = obj["boundingPoly"]["normalizedVertices"]
+            if len(vertices) < 4:
+                continue
+            xmin = int(vertices[0].get("x", 0) * width)
+            ymin = int(vertices[0].get("y", 0) * height)
+            xmax = int(vertices[2].get("x", 1) * width)
+            ymax = int(vertices[2].get("y", 1) * height)
+
+            obj_width = xmax - xmin
+            obj_height = ymax - ymin
+            area = obj_width * obj_height
+
+            if area > max_area:
+                max_area = area
+                target_object = {
+                    "box": (xmin, ymin, xmax, ymax),
+                    "name": obj["name"]
+                }
+
+        if target_object:
+            cropped_img = img.crop(target_object["box"])
+            cropped_buffer = io.BytesIO()
+            cropped_img.save(cropped_buffer, format="JPEG")
+            cropped_encoded = base64.b64encode(cropped_buffer.getvalue()).decode("utf-8")
+        else:
+            cropped_encoded = encoded_original
+
+    payload_text = {
+        "requests": [{
+            "image": {"content": cropped_encoded},
+            "features": [{"type": "TEXT_DETECTION"}]
+        }]
+    }
+    response_text = requests.post(url, data=json.dumps(payload_text), headers={"Content-Type": "application/json"})
+    text_result = response_text.json().get("responses", [{}])[0]
+    text_annotations = text_result.get("textAnnotations", [])
+
+    if not text_annotations:
+        return {'name': ''}
+
+    raw_text = text_annotations[0]["description"]
+
+    try:
+        model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+        response_openai = openai.ChatCompletion.create(
+            model=model,
+            messages=[
+                {"role": "system", "content": "You are a wine and beer expert. Extract the brand/producer and the product/varietal name from the OCR text. Follow these rules:\n1. Remove all extraneous information like locations, vintage years, alcohol content, volumes, importer/exporter names, warnings, and single letters.\n2. Do not omit words that are part of the brand name (e.g., 'Yes Way Rosé', not 'Way Rosé').\n3. Autocorrect obvious OCR spelling typos of wine/beer terms (e.g., convert 'Frenache' to 'Grenache', 'Grald' to 'Gerald').\n4. Format the final output in Title Case (e.g., 'Domaine Talmard Macon-Chardonnay' instead of all caps).\n5. Return ONLY the clean, corrected name. If no clear wine/beer name is found, return the input text cleaned in Title Case."},
+                {"role": "user", "content": f"OCR Text:\n{raw_text}"}
+            ],
+            temperature=0.0
+        )
+        cleaned_name = response_openai.choices[0].message.content.strip()
+    except Exception as e:
+        cleaned_name = raw_text
+
+    return {'name': cleaned_name}
+
 @customers_bp.route('/customer/palate', methods=['GET', 'POST'])
 def show_palate_questionnaire():
     if request.method == 'GET':
@@ -171,6 +271,7 @@ def show_palate_questionnaire():
     user_input = request.form.get("user_input", "")
     wine_option = request.form.get("wine_option", "1")
     customer_name = request.form.get("customer_name", "")
+    wine_name = request.form.get("wine_name", "")
     db_connection = create_database_connection()
     cursor = db_connection.cursor(dictionary=True, buffered=True)
     try:
@@ -219,6 +320,7 @@ def show_palate_questionnaire():
                                user_input=user_input,
                                wine_option=wine_option,
                                customer_name=customer_name,
+                               wine_name=wine_name,
                                logo_path=logo_path,
                                color=theme_color)
     except Exception as e:
@@ -245,7 +347,7 @@ def get_customer_recommendations():
         db_connection = create_database_connection()
         cursor = db_connection.cursor(dictionary=True, buffered=True)
         prompt_column = f"PROMPT_TXT_{wine_option}"
-        query = f"SELECT BEER_IND, RSTRNT_IND, NO_WINE_BEER_IND, {prompt_column} FROM ai_cstmr WHERE AI_CSTMR_START_TXT LIKE %s"
+        query = f"SELECT BEER_IND, RSTRNT_IND, RSTRNT_SCAN_IND, WINE_FOOD_PAIR_TXT, NO_WINE_BEER_IND, {prompt_column} FROM ai_cstmr WHERE AI_CSTMR_START_TXT LIKE %s"
         cursor.execute(query, ('%' + customer_name + '%',))
         cstmr_result = cursor.fetchone()
         is_beer = False
@@ -278,11 +380,45 @@ def get_customer_recommendations():
             palate_prefix = f"I like: {', '.join(other_descs)}.. .."
         rstrnt_ind = cstmr_result['RSTRNT_IND'] if cstmr_result else 'N'
         no_wine_beer_ind = cstmr_result['NO_WINE_BEER_IND'] if cstmr_result else 'N'
-        prompt_result = str(cstmr_result[prompt_column]) if (cstmr_result and cstmr_result[prompt_column]) else ""
-        if palate_prefix:
-            prompt_result = palate_prefix + " " + prompt_result
+        rstrnt_scan_ind = cstmr_result.get('RSTRNT_SCAN_IND') or 'N' if cstmr_result else 'N'
+        wine_name = request.form.get("wine_name", "").strip()
+
+        is_scanned_pairing = False
+        if rstrnt_scan_ind == 'Y' and wine_name:
+            is_scanned_pairing = True
+            prompt_template = cstmr_result.get('WINE_FOOD_PAIR_TXT') or ""
+            prompt_result = prompt_template.replace("the entered wine", wine_name).replace("the entered beer", wine_name)
+        else:
+            prompt_result = str(cstmr_result[prompt_column]) if (cstmr_result and cstmr_result[prompt_column]) else ""
+            if palate_prefix:
+                prompt_result = palate_prefix + " " + prompt_result
 
         theme_color = session.get('theme_color', 'N')
+
+        if is_scanned_pairing:
+            system_role = "You are BeerBuddy, an elite virtual cicerone." if cstmr_result.get('BEER_IND') == 'Y' else "You are WineBuddy, an elite virtual sommelier."
+            conversation = [
+                {"role": "system", "content": system_role},
+                {"role": "user", "content": prompt_result}
+            ]
+            chatbot_response = get_chatbot_response(conversation)
+            if chatbot_response:
+                matched_varietals = []
+                cursor.execute("SELECT VRTL_NM,VRTL_KEY FROM ai_vrtl")
+                matched_varietals = cursor.fetchall()
+                formatted_response = chatbot_response
+                for varietal, varietal_key in matched_varietals:
+                    varietal_link = f'<a href="/customer/stores?key={varietal_key}">{varietal}</a>'
+                    formatted_response = formatted_response.replace(varietal, varietal_link, 1)
+                formatted_response = re.sub(r'\*\*([^*]+)\*\*', r'<strong>\1</strong>', formatted_response)
+                paragraphs = formatted_response.split('\n\n')
+                paragraphs_with_links = []
+                for p in paragraphs:
+                    p_formatted = p.replace('\n', '<br>')
+                    paragraphs_with_links.append(p_formatted)
+                return render_template("recommendations_table.html", paragraphs_with_links=paragraphs_with_links, rstrnt_ind=rstrnt_ind, no_wine_beer_ind=no_wine_beer_ind, color=session.get('theme_color', 'N'))
+            else:
+                return "No response from chatbot"
 
         if theme_color == 'G':
             beer_pairings = get_beer_pairings(prompt_result, user_input)

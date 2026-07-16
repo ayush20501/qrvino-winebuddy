@@ -26,11 +26,64 @@
     <form method="POST" id="login_form" class="wb-chat-form" action="{{ url_for('customers.show_palate_questionnaire') }}">
         <div class="form-group mb-3" id="wordSliderContainer" style="display: none;">
             <select class="wb-select" id="wordSlider" name="word_slider">
-                <option value="" disabled selected>Choose a recipe</option>
+                <option value="" disabled selected>{% if rstrnt_scan_ind == 'Y' %}Choose a Dish{% else %}Choose a recipe{% endif %}</option>
             </select>
         </div>
 
-        <div id="inputContainer" class="wb-input-wrap">
+        {% if rstrnt_scan_ind == 'Y' %}
+        <div id="scenarioSelectionContainer" class="form-group mb-3 text-center">
+            <label class="wb-question-title" style="display: block; margin-bottom: 15px; font-weight: bold; color: #c9a84c;">How do you want to pair?</label>
+            <div style="display: flex; gap: 15px; justify-content: center; margin-top: 10px;">
+                <button type="button" id="btnFoodFirst" class="wb-btn wb-btn-primary" style="flex: 1; padding: 15px; font-size: 16px; border-radius: 8px;">
+                    <i class="fa-solid fa-utensils"></i> Choose Food First
+                </button>
+                <button type="button" id="btnWineFirst" class="wb-btn wb-btn-secondary" style="flex: 1; padding: 15px; font-size: 16px; border-radius: 8px; border: 1px solid #c9a84c; color: #c9a84c;">
+                    <i class="fa-solid fa-wine-glass"></i> Choose Wine First
+                </button>
+            </div>
+        </div>
+
+        <div id="wineMethodContainer" class="form-group mb-3" style="display: none;">
+            <label id="wineMethodLabel" class="wb-question-title" style="display: block; margin-bottom: 12px; color: #c9a84c; font-size: 15px;"></label>
+            <div class="wb-selection-list" style="display: flex; flex-direction: column; gap: 10px;">
+                <div class="form-check wb-option-row">
+                    <label class="form-check-label" for="method_scan">
+                        <span class="wb-option-text">Pair with Wine from Menu (Scan Bottle)</span>
+                        <input class="form-check-input" type="radio" name="wine_method" id="method_scan" value="scan" checked>
+                    </label>
+                </div>
+                <div class="form-check wb-option-row">
+                    <label class="form-check-label" for="method_manual">
+                        <span class="wb-option-text">Enter wine name manually</span>
+                        <input class="form-check-input" type="radio" name="wine_method" id="method_manual" value="manual">
+                    </label>
+                </div>
+                <div class="form-check wb-option-row" id="methodRecommendRow">
+                    <label class="form-check-label" for="method_recommend">
+                        <span class="wb-option-text">Let Wine Buddy Recommend</span>
+                        <input class="form-check-input" type="radio" name="wine_method" id="method_recommend" value="recommend">
+                    </label>
+                </div>
+            </div>
+            <div style="margin-top: 15px; text-align: right;">
+                <button type="button" id="btnMethodContinue" class="wb-btn wb-btn-primary">Continue</button>
+            </div>
+        </div>
+
+        <div class="form-group mb-3" id="wineScannerContainer" style="display: none;">
+            <div id="scanActionWrapper" style="display: none;">
+                <button type="button" id="scanWineButton" class="wb-btn wb-btn-secondary mb-2" style="width: 100%; background-color: #ffd700; color: #000; font-weight: bold; padding: 12px; border-radius: 8px; border: none; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; box-sizing: border-box;">
+                    <i class="fa-solid fa-camera"></i> Scan Wine Bottle to pair
+                </button>
+                <input type="file" id="wineCameraInput" accept="image/*" capture="environment" style="display: none;">
+            </div>
+            <div id="manualActionWrapper" style="display: none;">
+                <input type="text" id="wine_name" name="wine_name" class="wb-input" placeholder="Enter wine name manually..." style="margin-top: 8px;">
+            </div>
+        </div>
+        {% endif %}
+
+        <div id="inputContainer" class="wb-input-wrap" {% if rstrnt_scan_ind == 'Y' %}style="display: none;"{% endif %}>
             <input type="text" id="user_input" name="user_input" class="wb-input" placeholder="Enter a dish, cuisine, holiday, or occasion...">
             <button type="button" id="voiceButton" class="wb-btn-icon" aria-label="Voice input">
                 <i class="fa-solid fa-microphone"></i>
@@ -67,10 +120,29 @@
             </div>
         </div>
     </form>
+
+    {% if rstrnt_scan_ind == 'Y' %}
+    <div id="cameraModal" class="wb-loader-overlay wb-hidden" style="position: fixed; z-index: 10000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: flex; flex-direction: column; align-items: center; justify-content: center;">
+        <div style="background: #1a0f0a; border: 1px solid #c9a84c; border-radius: 12px; padding: 20px; width: 90%; max-width: 500px; display: flex; flex-direction: column; align-items: center; gap: 15px; box-shadow: 0 8px 32px rgba(0,0,0,0.5);">
+            <h3 style="color: #c9a84c; margin: 0; font-family: var(--wb-font); font-size: 1.25rem;">Point Camera at Wine Label</h3>
+            <video id="cameraVideo" autoplay playsinline style="width: 100%; border-radius: 8px; background: #000; max-height: 350px; object-fit: cover; transform: scaleX(1);"></video>
+            <div style="display: flex; gap: 10px; width: 100%;">
+                <button type="button" id="captureButton" class="wb-btn wb-btn-primary" style="flex: 1; padding: 10px;">
+                    <i class="fa-solid fa-camera"></i> Capture Photo
+                </button>
+                <button type="button" id="closeCameraButton" class="wb-btn wb-btn-secondary" style="flex: 1; padding: 10px; border-color: #ff4d4d; color: #ff4d4d;">
+                    Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+    {% endif %}
 </div>
 {% endblock %}
 {% block scripts %}
 <script>
+    var currentScenario = null;
+    var selectedMethod = null;
     $(document).ready(function () {
         var storedWord = sessionStorage.getItem("selectedWord");
         if (storedWord) {
@@ -163,6 +235,35 @@
 
     function searchClicked(event) {
         event.preventDefault();
+        var rstrnt_scan_ind = {{ rstrnt_scan_ind | default('N', true) | tojson }};
+        if (rstrnt_scan_ind === 'Y') {
+            var selectedWord = $('#wordSlider').val();
+            var wineName = $('#wine_name').val().trim();
+            if (currentScenario === 'food_first') {
+                if (!selectedWord) {
+                    alert("Please select a dish from the dropdown.");
+                    return;
+                }
+                $('#user_input').val(selectedWord);
+            } else {
+                $('#user_input').val('');
+            }
+            if (selectedMethod === 'scan' || selectedMethod === 'manual') {
+                if (!wineName) {
+                    alert("Please scan a wine bottle or enter a wine name manually.");
+                    return;
+                }
+            } else {
+                $('#wine_name').val('');
+            }
+            $("#loaderOverlay").removeClass('wb-hidden');
+            document.getElementById("loaderMessage").textContent = "Consulting the sommelier...";
+            setTimeout(function () {
+                document.getElementById("login_form").submit();
+            }, 500);
+            return;
+        }
+
         var selectedOption = document.querySelector('input[name="wine_option"]:checked').value;
         var selectedWord = $('#wordSlider').val();
         var userInput = $('#user_input').val().trim();
@@ -221,21 +322,171 @@
             inputContainer.show();
         }
 
-        $('#wordSlider').on('change', function () {
-            document.getElementById("user_input").value = '';
-        });
-
-        $('#wordSlider').on('click', function () {
-            if (this.value) {
+        if (rstrnt_scan_ind !== 'Y') {
+            $('#wordSlider').on('change', function () {
                 document.getElementById("user_input").value = '';
-            }
-        });
+            });
+
+            $('#wordSlider').on('click', function () {
+                if (this.value) {
+                    document.getElementById("user_input").value = '';
+                }
+            });
+        }
 
         $(document).on('click', '.highlighted-word', function () {
             var selectedWord = $(this).text();
             document.getElementById("user_input").value = selectedWord;
             $('#wordSlider').val(selectedWord);
         });
+
+        var rstrnt_scan_ind = {{ rstrnt_scan_ind | default('N', true) | tojson }};
+        if (rstrnt_scan_ind === 'Y') {
+            $('.wb-actions-row').hide();
+            $('#wordSliderContainer').hide();
+            $('#wineScannerContainer').hide();
+            $('#wineMethodContainer').hide();
+            $('#scenarioSelectionContainer').show();
+
+            $('#btnFoodFirst').on('click', function () {
+                currentScenario = 'food_first';
+                $('#scenarioSelectionContainer').hide();
+                $('#wordSliderContainer').show();
+            });
+
+            $('#btnWineFirst').on('click', function () {
+                currentScenario = 'wine_first';
+                $('#scenarioSelectionContainer').hide();
+                $('#wineMethodLabel').text('How do you want to pairing wine?');
+                $('#methodRecommendRow').hide();
+                $('#wineMethodContainer').show();
+            });
+
+            $('#wordSlider').on('change', function () {
+                var selectedDish = $(this).val();
+                if (selectedDish) {
+                    $('#wordSliderContainer').hide();
+                    $('#wineMethodLabel').text('Select how you want to find pairing wine:');
+                    $('#methodRecommendRow').show();
+                    $('#wineMethodContainer').show();
+                }
+            });
+
+            $('#btnMethodContinue').on('click', function () {
+                selectedMethod = $('input[name="wine_method"]:checked').val();
+                $('#wineMethodContainer').hide();
+                if (selectedMethod === 'recommend') {
+                    $('.wb-actions-row').show();
+                } else if (selectedMethod === 'scan') {
+                    $('#wineScannerContainer').show();
+                    $('#scanActionWrapper').show();
+                    $('#manualActionWrapper').hide();
+                } else if (selectedMethod === 'manual') {
+                    $('#wineScannerContainer').show();
+                    $('#scanActionWrapper').hide();
+                    $('#manualActionWrapper').show();
+                    $('.wb-actions-row').show();
+                }
+            });
+
+            var cameraStream = null;
+
+            $('#scanWineButton').on('click', function () {
+                navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
+                .then(function (stream) {
+                    cameraStream = stream;
+                    var video = document.getElementById('cameraVideo');
+                    video.srcObject = stream;
+                    $('#cameraModal').removeClass('wb-hidden');
+                })
+                .catch(function (err) {
+                    alert('Could not access camera: ' + err.message + '\nFalling back to manual file selection.');
+                    $('#wineCameraInput').trigger('click');
+                });
+            });
+
+            $('#closeCameraButton').on('click', function () {
+                stopCamera();
+            });
+
+            function stopCamera() {
+                if (cameraStream) {
+                    cameraStream.getTracks().forEach(function (track) {
+                        track.stop();
+                    });
+                    cameraStream = null;
+                }
+                $('#cameraModal').addClass('wb-hidden');
+            }
+
+            $('#wineCameraInput').on('change', function () {
+                var file = this.files[0];
+                if (!file) return;
+                var formData = new FormData();
+                formData.append('file', file);
+                uploadScannedImage(formData);
+            });
+
+            $('#captureButton').on('click', function () {
+                var video = document.getElementById('cameraVideo');
+                var canvas = document.createElement('canvas');
+                canvas.width = video.videoWidth || 640;
+                canvas.height = video.videoHeight || 480;
+                var ctx = canvas.getContext('2d');
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                stopCamera();
+                canvas.toBlob(function (blob) {
+                    if (!blob) return;
+                    var formData = new FormData();
+                    formData.append('file', blob, 'capture.jpg');
+                    uploadScannedImage(formData);
+                }, 'image/jpeg');
+            });
+
+            function uploadScannedImage(formData) {
+                $('#loaderOverlay').removeClass('wb-hidden');
+                document.getElementById('loaderMessage').textContent = 'Scanning wine bottle...';
+                fetch('/customer/scan_bottle', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    $('#loaderOverlay').addClass('wb-hidden');
+                    if (data.name) {
+                        $('#wine_name').val(data.name);
+                        updateOptionLabels();
+                        $('.wb-actions-row').show();
+                    } else if (data.error) {
+                        alert('Error: ' + data.error);
+                    } else {
+                        alert('Could not detect wine name. Please try typing it.');
+                    }
+                })
+                .catch(err => {
+                    $('#loaderOverlay').addClass('wb-hidden');
+                    alert('An error occurred during scanning. Please type it.');
+                });
+            }
+
+            function updateOptionLabels() {
+                var wineName = $('#wine_name').val().trim();
+                $('.wb-option-text').each(function () {
+                    var originalText = $(this).data('original-text');
+                    if (!originalText) {
+                        originalText = $(this).text();
+                        $(this).data('original-text', originalText);
+                    }
+                    if (wineName) {
+                        var newText = originalText.replace(/Pair selected delicious food/i, 'Pair "' + wineName + '"');
+                        $(this).text(newText);
+                    } else {
+                        $(this).text(originalText);
+                    }
+                });
+            }
+            $('#wine_name').on('input change', updateOptionLabels);
+        }
     });
 </script>
 {% endblock %}
