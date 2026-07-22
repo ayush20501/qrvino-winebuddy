@@ -161,10 +161,19 @@
             }
         });
 
-        window.addEventListener("popstate", function () {
+        window.addEventListener("popstate", function (event) {
             $("#loaderOverlay").addClass('wb-hidden');
             stopLoaderMessages();
-            $("#login_form")[0].reset();
+            var rstrnt_scan_ind = {{ rstrnt_scan_ind | default('N', true) | tojson }};
+            if (rstrnt_scan_ind === 'Y') {
+                if (event.state && event.state.step) {
+                    showStep(event.state.step);
+                } else {
+                    showStep('scenario');
+                }
+            } else {
+                $("#login_form")[0].reset();
+            }
         });
 
         window.addEventListener("pageshow", function () {
@@ -342,50 +351,82 @@
 
         var rstrnt_scan_ind = {{ rstrnt_scan_ind | default('N', true) | tojson }};
         if (rstrnt_scan_ind === 'Y') {
-            $('.wb-actions-row').hide();
-            $('#wordSliderContainer').hide();
-            $('#wineScannerContainer').hide();
-            $('#wineMethodContainer').hide();
-            $('#scenarioSelectionContainer').show();
+            window.showStep = function (stepName) {
+                $('#scenarioSelectionContainer').hide();
+                $('#wordSliderContainer').hide();
+                $('#wineMethodContainer').hide();
+                $('#wineScannerContainer').hide();
+                $('#scanActionWrapper').hide();
+                $('#manualActionWrapper').hide();
+                $('.wb-actions-row').hide();
+                $('.wb-options-panel').show();
+
+                if (stepName === 'scenario') {
+                    currentScenario = null;
+                    selectedMethod = null;
+                    $('#scenarioSelectionContainer').show();
+                } else if (stepName === 'food_dropdown') {
+                    currentScenario = 'food_first';
+                    selectedMethod = null;
+                    $('#wordSliderContainer').show();
+                } else if (stepName === 'food_options') {
+                    currentScenario = 'food_first';
+                    selectedMethod = 'recommend';
+                    $('.wb-actions-row').show();
+                } else if (stepName === 'wine_method') {
+                    currentScenario = 'wine_first';
+                    selectedMethod = null;
+                    $('#wineMethodLabel').text('How do you want to pairing wine?');
+                    $('#methodRecommendRow').hide();
+                    $('#wineMethodContainer').show();
+                } else if (stepName === 'wine_scan') {
+                    currentScenario = 'wine_first';
+                    selectedMethod = 'scan';
+                    $('#wineScannerContainer').show();
+                    $('#scanActionWrapper').show();
+                } else if (stepName === 'wine_manual') {
+                    currentScenario = 'wine_first';
+                    selectedMethod = 'manual';
+                    $('#wineScannerContainer').show();
+                    $('#manualActionWrapper').show();
+                    $('.wb-options-panel').hide();
+                    $('.wb-actions-row').show();
+                } else if (stepName === 'wine_options') {
+                    currentScenario = 'wine_first';
+                    selectedMethod = 'scan';
+                    $('.wb-actions-row').show();
+                }
+            };
+
+            history.replaceState({ step: 'scenario' }, "");
+            showStep('scenario');
 
             $('#btnFoodFirst').on('click', function () {
-                currentScenario = 'food_first';
-                $('#scenarioSelectionContainer').hide();
-                $('#wordSliderContainer').show();
+                history.pushState({ step: 'food_dropdown' }, "");
+                showStep('food_dropdown');
             });
 
             $('#btnWineFirst').on('click', function () {
-                currentScenario = 'wine_first';
-                $('#scenarioSelectionContainer').hide();
-                $('#wineMethodLabel').text('How do you want to pairing wine?');
-                $('#methodRecommendRow').hide();
-                $('#wineMethodContainer').show();
+                history.pushState({ step: 'wine_method' }, "");
+                showStep('wine_method');
             });
 
             $('#wordSlider').on('change', function () {
                 var selectedDish = $(this).val();
                 if (selectedDish) {
-                    $('#wordSliderContainer').hide();
-                    $('#wineMethodLabel').text('Select how you want to find pairing wine:');
-                    $('#methodRecommendRow').show();
-                    $('#wineMethodContainer').show();
+                    history.pushState({ step: 'food_options' }, "");
+                    showStep('food_options');
                 }
             });
 
             $('#btnMethodContinue').on('click', function () {
                 selectedMethod = $('input[name="wine_method"]:checked').val();
-                $('#wineMethodContainer').hide();
-                if (selectedMethod === 'recommend') {
-                    $('.wb-actions-row').show();
-                } else if (selectedMethod === 'scan') {
-                    $('#wineScannerContainer').show();
-                    $('#scanActionWrapper').show();
-                    $('#manualActionWrapper').hide();
+                if (selectedMethod === 'scan') {
+                    history.pushState({ step: 'wine_scan' }, "");
+                    showStep('wine_scan');
                 } else if (selectedMethod === 'manual') {
-                    $('#wineScannerContainer').show();
-                    $('#scanActionWrapper').hide();
-                    $('#manualActionWrapper').show();
-                    $('.wb-actions-row').show();
+                    history.pushState({ step: 'wine_manual' }, "");
+                    showStep('wine_manual');
                 }
             });
 
@@ -456,7 +497,11 @@
                     if (data.name) {
                         $('#wine_name').val(data.name);
                         updateOptionLabels();
-                        $('.wb-actions-row').show();
+                        $('#loaderOverlay').removeClass('wb-hidden');
+                        document.getElementById("loaderMessage").textContent = "Consulting the sommelier...";
+                        setTimeout(function () {
+                            document.getElementById("login_form").submit();
+                        }, 500);
                     } else if (data.error) {
                         alert('Error: ' + data.error);
                     } else {

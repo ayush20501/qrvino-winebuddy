@@ -44,6 +44,9 @@
             <span class="wb-intro-line">Palate Preferences</span>
             <p class="wb-tagline mb-0">Tell us about your taste preferences to help us choose the perfect wine.</p>
             <p class="wb-tagline" style="font-size: 14px; opacity: 0.8; margin-top: 4px;">All choices are optional</p>
+            <div style="margin-top: 15px; text-align: center;">
+                <button type="button" id="btnSkipPalate" class="wb-btn wb-btn-secondary" style="font-weight: bold; border-radius: 20px; padding: 6px 18px; font-family: var(--wb-font); font-size: 14px; border: 1.5px solid var(--wb-gold); color: var(--wb-gold); background: transparent; display: inline-block;">Skip</button>
+            </div>
         </div>
     </div>
 
@@ -85,6 +88,11 @@
         $("#palate_form").submit(function () {
             $("#loaderOverlay").removeClass('wb-hidden');
             startLoaderMessages();
+        });
+
+        $("#btnSkipPalate").click(function () {
+            $('input[name^="palate_q_"]').prop('checked', false);
+            $("#palate_form").submit();
         });
     });
 
