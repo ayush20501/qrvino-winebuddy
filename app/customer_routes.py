@@ -264,6 +264,76 @@ def scan_bottle():
 
     return {'name': cleaned_name}
 
+@customers_bp.route('/customer/scan_menu', methods=['POST'])
+def scan_menu():
+    import base64
+    import io
+    import requests
+    from PIL import Image
+
+    if 'file' not in request.files:
+        return {'error': 'No file uploaded'}, 400
+    file = request.files['file']
+    if file.filename == '':
+        return {'error': 'No file selected'}, 400
+
+    scan_type = request.form.get('scan_type', 'food')
+
+    image_bytes = file.read()
+    api_key = os.getenv("VISION_API_KEY")
+    if not api_key:
+        return {'error': 'VISION_API_KEY not configured'}, 500
+
+    encoded_original = base64.b64encode(image_bytes).decode("utf-8")
+    url = f"https://vision.googleapis.com/v1/images:annotate?key={api_key}"
+    payload_text = {
+        "requests": [{
+            "image": {"content": encoded_original},
+            "features": [{"type": "TEXT_DETECTION"}]
+        }]
+    }
+    response_text = requests.post(url, data=json.dumps(payload_text), headers={"Content-Type": "application/json"})
+    text_result = response_text.json().get("responses", [{}])[0]
+    text_annotations = text_result.get("textAnnotations", [])
+
+    if not text_annotations:
+        return {'items': []}
+
+    raw_text = text_annotations[0]["description"]
+
+    try:
+        model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+        if scan_type == 'wine':
+            prompt_instr = (
+                "You are an expert sommelier. Extract all individual wine items/names from the following OCR text of a wine list menu.\n"
+                "Return a JSON object with a single key 'items' containing a list of cleaned wine item strings.\n"
+                "Do not include section headings or non-wine items.\n"
+                "Example format: {\"items\": [\"Roseblood d'Estoublon, Rosé, Coteaux Varois en Provence, 2025\", \"Cobb, 'MesFilles,' Chardonnay, Sonoma Coast, 2022\"]}"
+            )
+        else:
+            prompt_instr = (
+                "You are a food and restaurant expert. Extract all individual food dish items from the following OCR text of a restaurant food menu.\n"
+                "Return a JSON object with a single key 'items' containing a list of cleaned dish name strings.\n"
+                "Do not include section headings, prices, or descriptions unless necessary to identify the dish.\n"
+                "Example format: {\"items\": [\"Crispy Brick Chicken\", \"Double Cut Lamb Chops\", \"16oz Double Wagyu Cheeseburger\"]}"
+            )
+
+        response_openai = openai.ChatCompletion.create(
+            model=model,
+            messages=[
+                {"role": "system", "content": prompt_instr},
+                {"role": "user", "content": f"OCR Text:\n{raw_text}"}
+            ],
+            response_format={"type": "json_object"},
+            temperature=0.0
+        )
+        res_json = json.loads(response_openai.choices[0].message.content.strip())
+        items = res_json.get("items", [])
+    except Exception as e:
+        items = [line.strip() for line in raw_text.split('\n') if len(line.strip()) > 3]
+
+    return {'items': items}
+
 @customers_bp.route('/customer/palate', methods=['GET', 'POST'])
 def show_palate_questionnaire():
     if request.method == 'GET':
