@@ -5,3 +5,5 @@ aiven_dump.sql
 backups/
 vision-api-test.py
 visionimages/
+websearch_app.py
+websearch.py

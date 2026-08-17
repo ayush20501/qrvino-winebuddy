@@ -540,6 +540,24 @@ body.wb-theme-beer .wb-options-panel {
     border-radius: 999px;
 }
 
+#wineOptionList, #recognizedItemsList {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(212, 175, 55, 0.4) transparent;
+}
+
+#wineOptionList::-webkit-scrollbar, #recognizedItemsList::-webkit-scrollbar {
+    width: 6px;
+}
+
+#wineOptionList::-webkit-scrollbar-track, #recognizedItemsList::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+#wineOptionList::-webkit-scrollbar-thumb, #recognizedItemsList::-webkit-scrollbar-thumb {
+    background: rgba(212, 175, 55, 0.4);
+    border-radius: 999px;
+}
+
 .wb-option-row {
     padding: 0.75rem 0;
     border-bottom: 1px dashed rgba(212, 175, 55, 0.2);

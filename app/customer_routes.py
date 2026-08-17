@@ -1,5 +1,5 @@
 from flask import render_template, request, redirect, Blueprint, session
-from app.config import openai, create_database_connection, OPENAI_MODEL
+from app.config import openai, openai_client, create_database_connection, OPENAI_MODEL, OPENAI_WEBSEARCH_MODEL
 import re
 import os
 import logging
@@ -465,6 +465,24 @@ def get_customer_recommendations():
 
         theme_color = session.get('theme_color', 'N')
 
+        if "[WEB_SEARCH]" in prompt_result:
+            clean_prompt = prompt_result.replace("[WEB_SEARCH]", "").strip()
+            if user_input:
+                for placeholder in ["{user_input}", "{food}", "{dish}", "{item}", "the entered food", "the entered dish", "the entered wine", "the entered item"]:
+                    if placeholder in clean_prompt:
+                        clean_prompt = clean_prompt.replace(placeholder, user_input)
+                        break
+                else:
+                    clean_prompt = f"{clean_prompt}? {user_input}"
+            chatbot_response = get_websearch_response(clean_prompt)
+            if not chatbot_response:
+                return "No response from chatbot"
+            is_table, rendered_content = format_websearch_output(chatbot_response)
+            if is_table:
+                return render_template("recommendations_table.html", token=1, var=rendered_content, rstrnt_ind=rstrnt_ind, no_wine_beer_ind=no_wine_beer_ind, color=theme_color)
+            else:
+                return render_template("recommendations_table.html", paragraphs_with_links=rendered_content, rstrnt_ind=rstrnt_ind, no_wine_beer_ind=no_wine_beer_ind, color=theme_color)
+
         if is_scanned_pairing:
             system_role = "You are BeerBuddy, an elite virtual cicerone." if cstmr_result.get('BEER_IND') == 'Y' else "You are WineBuddy, an elite virtual sommelier."
             conversation = [
@@ -655,6 +673,62 @@ def get_chatbot_response(messages):
             if attempt < 2:
                 time.sleep(1)
     return None
+
+def get_websearch_response(prompt_text):
+    for attempt in range(3):
+        try:
+            response = openai_client.responses.create(
+                model=OPENAI_WEBSEARCH_MODEL,
+                tools=[{"type": "web_search"}],
+                input=prompt_text
+            )
+            output = getattr(response, "output_text", None)
+            if not output and hasattr(response, "output"):
+                output = str(response.output)
+            if output:
+                return output
+        except Exception as e:
+            logging.error(f"OpenAI web search attempt {attempt + 1} failed: {type(e).__name__}: {e}")
+            if attempt < 2:
+                time.sleep(1)
+    return None
+
+def format_websearch_output(markdown_text):
+    if not markdown_text:
+        return False, []
+    text = re.sub(r'\[([^\]]+)\]\((https?://[^\)]+)\)', r'<a href="\2" target="_blank" rel="noopener noreferrer">\1</a>', markdown_text)
+    text = re.sub(r'\*\*([^*]+)\*\*', r'<strong>\1</strong>', text)
+    lines = [line.strip() for line in text.strip().split('\n') if line.strip()]
+    table_lines = [line for line in lines if '|' in line]
+    if len(table_lines) >= 2:
+        headers = [h.strip() for h in table_lines[0].split('|') if h.strip()]
+        data_start = 1
+        if len(table_lines) > 1 and all(c in '-: |' for c in table_lines[1]):
+            data_start = 2
+        html_table = "<table>\n<thead>\n<tr>\n"
+        html_table += "".join([f"<th>{h}</th>\n" for h in headers])
+        html_table += "</tr>\n</thead>\n<tbody>\n"
+        for line in table_lines[data_start:]:
+            if all(c in '-: |' for c in line):
+                continue
+            cols = [col.strip() for col in line.split('|')]
+            if line.startswith('|'):
+                cols = cols[1:]
+            if line.endswith('|'):
+                cols = cols[:-1]
+            if not cols or all(not c for c in cols):
+                continue
+            html_table += "<tr>\n"
+            for idx, col in enumerate(cols):
+                header_name = headers[idx] if idx < len(headers) else ""
+                html_table += f'<td data-label="{header_name}">{col}</td>\n'
+            html_table += "</tr>\n"
+        html_table += "</tbody>\n</table>"
+        return True, html_table
+    else:
+        paragraphs = text.split('\n\n')
+        formatted_paragraphs = [p.replace('\n', '<br>') for p in paragraphs if p.strip()]
+        return False, formatted_paragraphs
 
 def get_beer_pairings(prompt_result, user_input):
     functions = [{
