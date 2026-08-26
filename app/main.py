@@ -1,8 +1,7 @@
 from flask import Flask, render_template, request,redirect,session
-import openai
 import re
 import mysql.connector
-from app.config import openai, create_database_connection, OPENAI_MODEL
+from app.config import openai_client, create_database_connection, OPENAI_MODEL
 from app.customer_routes import customers_bp
 from app.admin_routes import admin_bp
 
@@ -12,11 +11,11 @@ app.register_blueprint(customers_bp)
 app.register_blueprint(admin_bp)
 
 def get_chatbot_response(messages):
-    response = openai.ChatCompletion.create(
+    response = openai_client.chat.completions.create(
         model=OPENAI_MODEL,
         messages=messages
     )
-    return response.choices[0].message["content"]
+    return response.choices[0].message.content or ""
 
 def extract_clickable_headings(response):
     headings = re.findall(r'(\w+(?:\/\w+)?)\: (?:.|\n)+?(?=\n\n|$)', response)

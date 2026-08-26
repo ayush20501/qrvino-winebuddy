@@ -1,5 +1,5 @@
 from flask import render_template, request, redirect, Blueprint, session
-from app.config import openai, openai_client, create_database_connection, OPENAI_MODEL, OPENAI_WEBSEARCH_MODEL
+from app.config import openai_client, create_database_connection, OPENAI_MODEL, OPENAI_WEBSEARCH_MODEL
 import re
 import os
 import logging
@@ -250,7 +250,7 @@ def scan_bottle():
 
     try:
         model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
-        response_openai = openai.ChatCompletion.create(
+        response_openai = openai_client.chat.completions.create(
             model=model,
             messages=[
                 {"role": "system", "content": "You are a wine and beer expert. Extract the brand/producer and the product/varietal name from the OCR text. Follow these rules:\n1. Remove all extraneous information like locations, vintage years, alcohol content, volumes, importer/exporter names, warnings, and single letters.\n2. Do not omit words that are part of the brand name (e.g., 'Yes Way Rosé', not 'Way Rosé').\n3. Autocorrect obvious OCR spelling typos of wine/beer terms (e.g., convert 'Frenache' to 'Grenache', 'Grald' to 'Gerald').\n4. Format the final output in Title Case (e.g., 'Domaine Talmard Macon-Chardonnay' instead of all caps).\n5. Return ONLY the clean, corrected name. If no clear wine/beer name is found, return the input text cleaned in Title Case."},
@@ -258,7 +258,7 @@ def scan_bottle():
             ],
             temperature=0.0
         )
-        cleaned_name = response_openai.choices[0].message.content.strip()
+        cleaned_name = (response_openai.choices[0].message.content or "").strip()
     except Exception as e:
         cleaned_name = raw_text
 
@@ -318,7 +318,7 @@ def scan_menu():
                 "Example format: {\"items\": [\"Crispy Brick Chicken\", \"Double Cut Lamb Chops\", \"16oz Double Wagyu Cheeseburger\"]}"
             )
 
-        response_openai = openai.ChatCompletion.create(
+        response_openai = openai_client.chat.completions.create(
             model=model,
             messages=[
                 {"role": "system", "content": prompt_instr},
@@ -662,12 +662,12 @@ def get_customer_recommendations():
 def get_chatbot_response(messages):
     for attempt in range(3):
         try:
-            response = openai.ChatCompletion.create(
+            response = openai_client.chat.completions.create(
                 model=OPENAI_MODEL,
                 messages=messages,
                 temperature=0
             )
-            return response.choices[0].message["content"]
+            return response.choices[0].message.content or ""
         except Exception as e:
             logging.error(f"OpenAI attempt {attempt + 1} failed: {type(e).__name__}: {e}")
             if attempt < 2:
@@ -731,28 +731,31 @@ def format_websearch_output(markdown_text):
         return False, formatted_paragraphs
 
 def get_beer_pairings(prompt_result, user_input):
-    functions = [{
-        "name": "return_beer_pairings",
-        "description": "Return a list of beer pairing recommendations for the requested dish.",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "pairings": {
-                    "type": "array",
-                    "items": {
-                        "type": "object",
-                        "properties": {
-                            "name": {"type": "string", "description": "Beer style, brand or variety name"},
-                            "sommelier_notes": {
-                                "type": "string",
-                                "description": "Sommelier notes about the beer. You must strictly follow the user's prompt instructions for what details to include, formatting each detail/field label in bold and on a new line using markdown format (e.g., '**Label:** Value\\n')."
-                            }
-                        },
-                        "required": ["name", "sommelier_notes"]
+    tools = [{
+        "type": "function",
+        "function": {
+            "name": "return_beer_pairings",
+            "description": "Return a list of beer pairing recommendations for the requested dish.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "pairings": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "name": {"type": "string", "description": "Beer style, brand or variety name"},
+                                "sommelier_notes": {
+                                    "type": "string",
+                                    "description": "Sommelier notes about the beer. You must strictly follow the user's prompt instructions for what details to include, formatting each detail/field label in bold and on a new line using markdown format (e.g., '**Label:** Value\\n')."
+                                }
+                            },
+                            "required": ["name", "sommelier_notes"]
+                        }
                     }
-                }
-            },
-            "required": ["pairings"]
+                },
+                "required": ["pairings"]
+            }
         }
     }]
     messages = [
@@ -770,15 +773,21 @@ def get_beer_pairings(prompt_result, user_input):
     ]
     for attempt in range(3):
         try:
-            response = openai.ChatCompletion.create(
+            response = openai_client.chat.completions.create(
                 model=OPENAI_MODEL,
                 messages=messages,
-                functions=functions,
-                function_call={"name": "return_beer_pairings"},
+                tools=tools,
+                tool_choice={"type": "function", "function": {"name": "return_beer_pairings"}},
                 temperature=0
             )
-            arguments = response.choices[0].message["function_call"]["arguments"]
-            return json.loads(arguments).get("pairings", [])
+            choice = response.choices[0]
+            if choice.message.tool_calls:
+                arguments = choice.message.tool_calls[0].function.arguments
+                return json.loads(arguments).get("pairings", [])
+            elif getattr(choice.message, "function_call", None):
+                arguments = choice.message.function_call.arguments
+                return json.loads(arguments).get("pairings", [])
+            return []
         except Exception as e:
             logging.error(f"OpenAI beer attempt {attempt + 1} failed: {type(e).__name__}: {e}")
             if attempt < 2:
@@ -786,28 +795,31 @@ def get_beer_pairings(prompt_result, user_input):
     return None
 
 def get_wine_pairings(prompt_result, user_input):
-    functions = [{
-        "name": "return_wine_pairings",
-        "description": "Return a list of wine pairing recommendations for the requested dish.",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "pairings": {
-                    "type": "array",
-                    "items": {
-                        "type": "object",
-                        "properties": {
-                            "name": {"type": "string", "description": "Wine style, varietal or brand name"},
-                            "sommelier_notes": {
-                                "type": "string",
-                                "description": "Sommelier notes about the wine. You must strictly follow the user's prompt instructions for what details to include, formatting each detail/field label in bold and on a new line using markdown format (e.g., '**Label:** Value\\n')."
-                            }
-                        },
-                        "required": ["name", "sommelier_notes"]
+    tools = [{
+        "type": "function",
+        "function": {
+            "name": "return_wine_pairings",
+            "description": "Return a list of wine pairing recommendations for the requested dish.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "pairings": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "name": {"type": "string", "description": "Wine style, varietal or brand name"},
+                                "sommelier_notes": {
+                                    "type": "string",
+                                    "description": "Sommelier notes about the wine. You must strictly follow the user's prompt instructions for what details to include, formatting each detail/field label in bold and on a new line using markdown format (e.g., '**Label:** Value\\n')."
+                                }
+                            },
+                            "required": ["name", "sommelier_notes"]
+                        }
                     }
-                }
-            },
-            "required": ["pairings"]
+                },
+                "required": ["pairings"]
+            }
         }
     }]
     messages = [
@@ -825,15 +837,21 @@ def get_wine_pairings(prompt_result, user_input):
     ]
     for attempt in range(3):
         try:
-            response = openai.ChatCompletion.create(
+            response = openai_client.chat.completions.create(
                 model=OPENAI_MODEL,
                 messages=messages,
-                functions=functions,
-                function_call={"name": "return_wine_pairings"},
+                tools=tools,
+                tool_choice={"type": "function", "function": {"name": "return_wine_pairings"}},
                 temperature=0
             )
-            arguments = response.choices[0].message["function_call"]["arguments"]
-            return json.loads(arguments).get("pairings", [])
+            choice = response.choices[0]
+            if choice.message.tool_calls:
+                arguments = choice.message.tool_calls[0].function.arguments
+                return json.loads(arguments).get("pairings", [])
+            elif getattr(choice.message, "function_call", None):
+                arguments = choice.message.function_call.arguments
+                return json.loads(arguments).get("pairings", [])
+            return []
         except Exception as e:
             logging.error(f"OpenAI wine attempt {attempt + 1} failed: {type(e).__name__}: {e}")
             if attempt < 2:

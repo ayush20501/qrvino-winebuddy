@@ -2,19 +2,17 @@ import os
 from pathlib import Path
 
 import mysql.connector
-import openai
 from dotenv import load_dotenv
 from sshtunnel import SSHTunnelForwarder
+from openai import OpenAI
 
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
-from openai import OpenAI
-
-openai.api_key = os.getenv("OPENAI_API_KEY", "")
-if not openai.api_key:
+api_key = os.getenv("OPENAI_API_KEY", "")
+if not api_key:
     raise ValueError("OPENAI_API_KEY is not set. Add it to your .env file.")
 
-openai_client = OpenAI(api_key=openai.api_key)
+openai_client = OpenAI(api_key=api_key)
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
 OPENAI_WEBSEARCH_MODEL = os.getenv("OPENAI_WEBSEARCH_MODEL", "gpt-5.6")
 
