@@ -18,7 +18,7 @@
         <img src="{{ url_for('static', filename=logo_path) }}" alt="WineBuddy AI Assistant">
         {% endif %}
         <div id="colorText">
-            <span class="wb-intro-line">{{ first_line }}</span>
+            <span class="wb-intro-line" id="introFirstLine">{{ first_line }}</span>
             <p id="intoductionMessage" class="wb-tagline mb-0"></p>
         </div>
     </div>
@@ -54,6 +54,17 @@
                 </button>
             </div>
             <div id="recognizedItemsList" style="display: flex; flex-direction: column; gap: 8px; max-height: 360px; overflow-y: auto; padding-right: 4px;">
+            </div>
+        </div>
+
+        <div id="dishPairingChoiceContainer" class="form-group mb-3 text-center" style="display: none;">
+            <div style="display: flex; gap: 12px; justify-content: center;">
+                <button type="button" id="btnUseWineList" class="wb-btn" style="flex: 1; background-color: #ffd700; color: #000; font-weight: bold; padding: 14px; border-radius: 8px; border: none; font-size: 15px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                    Use Wine List
+                </button>
+                <button type="button" id="btnScanWineListChoice" class="wb-btn" style="flex: 1; background-color: #ffd700; color: #000; font-weight: bold; padding: 14px; border-radius: 8px; border: none; font-size: 15px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                    Scan Wine List
+                </button>
             </div>
         </div>
 
@@ -116,7 +127,7 @@
 
     <div id="reviewPhotoModal" class="wb-loader-overlay wb-hidden" style="position: fixed; z-index: 10001; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: flex; flex-direction: column; align-items: center; justify-content: center;">
         <div style="background: #1a0f0a; border: 1px solid #c9a84c; border-radius: 12px; padding: 20px; width: 90%; max-width: 480px; display: flex; flex-direction: column; align-items: center; gap: 15px; box-shadow: 0 8px 32px rgba(0,0,0,0.5);">
-            <h3 style="color: #ffffff; margin: 0; font-size: 1.25rem;">Review Photo</h3>
+            <h3 style="color: #ffffff; margin: 0; font-size: 1.25rem;">Review Scan</h3>
             <p style="color: #9ca3af; font-size: 0.85rem; margin: 0; text-align: center;">Check if the menu text is readable and choose an action</p>
             <div style="width: 100%; max-height: 300px; overflow: hidden; border-radius: 8px; border: 1px solid #444; display: flex; align-items: center; justify-content: center; background: #000;">
                 <img id="reviewPhotoImg" src="" alt="Menu Preview" style="max-width: 100%; max-height: 300px; object-fit: contain;">
@@ -126,7 +137,7 @@
                     <i class="fa-solid fa-rotate-left"></i> Retake
                 </button>
                 <button type="button" id="btnUsePhoto" class="wb-btn wb-btn-primary" style="flex: 1; padding: 12px; background-color: #d92638; border-color: #d92638; color: #ffffff; border-radius: 8px; cursor: pointer;">
-                    <i class="fa-solid fa-check"></i> Use Photo
+                    <i class="fa-solid fa-check"></i> Use Scan
                 </button>
             </div>
         </div>
@@ -368,19 +379,26 @@
             var currentScanType = 'food';
             var currentFile = null;
             var cameraStream = null;
+            var originalIntroLine = $('#introFirstLine').text();
 
             window.showStep = function (stepName) {
                 $('#scenarioSelectionContainer').hide();
                 $('#wordSliderContainer').hide();
                 $('#recognizedItemsContainer').hide();
+                $('#dishPairingChoiceContainer').hide();
                 $('.wb-actions-row').hide();
 
                 if (stepName === 'scenario') {
+                    $('#introFirstLine').text(originalIntroLine);
                     $('#scenarioSelectionContainer').show();
                 } else if (stepName === 'food_dropdown') {
+                    $('#introFirstLine').text(originalIntroLine);
                     $('#wordSliderContainer').show();
                 } else if (stepName === 'recognized_items') {
                     $('#recognizedItemsContainer').show();
+                } else if (stepName === 'dish_pairing_choice') {
+                    $('#introFirstLine').text("Choose your wine and we'll recommend a perfect dish");
+                    $('#dishPairingChoiceContainer').show();
                 }
             };
 
@@ -403,8 +421,18 @@
             });
 
             $('#btnBackFromItems').on('click', function () {
+                $('#introFirstLine').text(originalIntroLine);
                 history.pushState({ step: 'scenario' }, "");
                 showStep('scenario');
+            });
+
+            $('#btnUseWineList').on('click', function () {
+                $('#wineOptionModal').removeClass('wb-hidden');
+            });
+
+            $('#btnScanWineListChoice').on('click', function () {
+                currentScanType = 'wine';
+                openCameraOrPicker('Point Camera at Wine List');
             });
 
             $('#wordSlider').on('change', function () {
@@ -412,7 +440,8 @@
                 if (selectedDish) {
                     $('#user_input').val(selectedDish);
                     sessionStorage.setItem("selectedWord", selectedDish);
-                    $('#wineOptionModal').removeClass('wb-hidden');
+                    history.pushState({ step: 'dish_pairing_choice' }, "");
+                    showStep('dish_pairing_choice');
                 }
             });
 
@@ -485,6 +514,7 @@
                 var formData = new FormData();
                 formData.append('file', currentFile);
                 formData.append('scan_type', currentScanType);
+                formData.append('customer_name', $('#customer_name').val());
 
                 fetch('/customer/scan_menu', {
                     method: 'POST',
@@ -510,27 +540,78 @@
             function displayRecognizedItems(items) {
                 var listEl = $('#recognizedItemsList');
                 listEl.empty();
-                $('#recognizedItemsTitle').text(currentScanType === 'wine' ? 'Recognized Wines' : 'Saved Menus');
-                items.forEach(function (item) {
-                    var btn = $('<button type="button" class="wb-btn" style="width: 100%; text-align: left; background: #2a1a12; color: #ffffff; border: 1px solid #443022; border-radius: 8px; padding: 12px 16px; cursor: pointer; font-size: 14px; display: flex; justify-content: space-between; align-items: center;"></button>');
-                    btn.html('<span>' + item + '</span><i class="fa-solid fa-chevron-right" style="color: #c9a84c; font-size: 12px;"></i>');
-                    btn.on('click', function () {
-                        onItemSelected(item);
+
+                if (currentScanType === 'wine') {
+                    $('#introFirstLine').text("Choose your wine and we'll recommend the perfect dish match");
+                    $('#recognizedItemsTitle').text('Recognized Wines');
+                    items.forEach(function (item) {
+                        if (typeof item === 'object' && item !== null) {
+                            var itemName = item.name || '';
+                            var flavor = item.flavor || '';
+                            var pairingNotes = item.pairing_notes || '';
+                            var glassTemp = item.glass_temp || '';
+
+                            var card = $('<div class="wb-wine-card" style="background: #2a1a12; border: 1px solid #443022; border-radius: 8px; padding: 14px; cursor: pointer; text-align: left; transition: all 0.2s ease;"></div>');
+                            card.hover(
+                                function () { $(this).css({ 'border-color': '#ffd700', 'background-color': '#352117' }); },
+                                function () { $(this).css({ 'border-color': '#443022', 'background-color': '#2a1a12' }); }
+                            );
+
+                            var cardHtml = '<div style="color: #ffd700; font-weight: bold; font-size: 15px; margin-bottom: 8px;">' + $('<div>').text(itemName).html() + '</div>';
+                            if (flavor) {
+                                cardHtml += '<div style="color: #d1d5db; font-size: 13px; margin-bottom: 6px; line-height: 1.4;"><strong style="color: #c9a84c;">Flavor:</strong> ' + $('<div>').text(flavor).html() + '</div>';
+                            }
+                            if (pairingNotes) {
+                                cardHtml += '<div style="color: #d1d5db; font-size: 13px; margin-bottom: 6px; line-height: 1.4;"><strong style="color: #c9a84c;">Pairing Notes:</strong> ' + $('<div>').text(pairingNotes).html() + '</div>';
+                            }
+                            if (glassTemp) {
+                                cardHtml += '<div style="color: #d1d5db; font-size: 13px; line-height: 1.4;"><strong style="color: #c9a84c;">Best Glass/Temp:</strong> ' + $('<div>').text(glassTemp).html() + '</div>';
+                            }
+
+                            card.html(cardHtml);
+                            card.on('click', function () {
+                                onItemSelected(itemName);
+                            });
+                            listEl.append(card);
+                        } else {
+                            var btn = $('<button type="button" class="wb-btn" style="width: 100%; text-align: left; background: #2a1a12; color: #ffffff; border: 1px solid #443022; border-radius: 8px; padding: 12px 16px; cursor: pointer; font-size: 14px; display: flex; justify-content: space-between; align-items: center;"></button>');
+                            btn.html('<span>' + $('<div>').text(item).html() + '</span><i class="fa-solid fa-chevron-right" style="color: #c9a84c; font-size: 12px;"></i>');
+                            btn.on('click', function () {
+                                onItemSelected(item);
+                            });
+                            listEl.append(btn);
+                        }
                     });
-                    listEl.append(btn);
-                });
+                } else {
+                    $('#recognizedItemsTitle').text('Saved Menus');
+                    items.forEach(function (item) {
+                        var itemName = typeof item === 'object' && item !== null ? (item.name || '') : item;
+                        var btn = $('<button type="button" class="wb-btn" style="width: 100%; text-align: left; background: #2a1a12; color: #ffffff; border: 1px solid #443022; border-radius: 8px; padding: 12px 16px; cursor: pointer; font-size: 14px; display: flex; justify-content: space-between; align-items: center;"></button>');
+                        btn.html('<span>' + $('<div>').text(itemName).html() + '</span><i class="fa-solid fa-chevron-right" style="color: #c9a84c; font-size: 12px;"></i>');
+                        btn.on('click', function () {
+                            onItemSelected(itemName);
+                        });
+                        listEl.append(btn);
+                    });
+                }
+
                 history.pushState({ step: 'recognized_items' }, "");
                 showStep('recognized_items');
             }
 
             function onItemSelected(item) {
                 if (currentScanType === 'food') {
-                    $('#user_input').val(item);
-                    sessionStorage.setItem("selectedWord", item);
-                    $('#wineOptionModal').removeClass('wb-hidden');
+                    var dishName = typeof item === 'object' && item !== null ? (item.name || '') : item;
+                    $('#user_input').val(dishName);
+                    sessionStorage.setItem("selectedWord", dishName);
+                    history.pushState({ step: 'dish_pairing_choice' }, "");
+                    showStep('dish_pairing_choice');
                 } else if (currentScanType === 'wine') {
-                    $('#wine_name').val(item);
-                    $('#user_input').val(item);
+                    var wineName = typeof item === 'object' && item !== null ? (item.name || '') : item;
+                    $('#wine_name').val(wineName);
+                    if (!$('#user_input').val()) {
+                        $('#user_input').val(wineName);
+                    }
                     $('#loaderOverlay').removeClass('wb-hidden');
                     document.getElementById("loaderMessage").textContent = "Consulting the sommelier...";
                     setTimeout(function () {

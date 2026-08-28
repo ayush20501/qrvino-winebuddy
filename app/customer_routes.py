@@ -278,6 +278,36 @@ def scan_menu():
         return {'error': 'No file selected'}, 400
 
     scan_type = request.form.get('scan_type', 'food')
+    customer_name = request.form.get('customer_name', '').strip()
+    cstmr_key = session.get('ai_cstmr_key')
+
+    pair_prompt = ""
+    meat_cut_ind = ""
+    rstrnt_ind = ""
+    db_conn = None
+    cur = None
+    try:
+        db_conn = create_database_connection()
+        cur = db_conn.cursor(dictionary=True, buffered=True)
+        if customer_name:
+            cur.execute("SELECT MEAT_CUT_IND, RSTRNT_IND, PAIR_WINE_PROMPT_TXT FROM ai_cstmr WHERE AI_CSTMR_START_TXT LIKE %s", ('%' + customer_name + '%',))
+            cstmr_data = cur.fetchone()
+        elif cstmr_key:
+            cur.execute("SELECT MEAT_CUT_IND, RSTRNT_IND, PAIR_WINE_PROMPT_TXT FROM ai_cstmr WHERE AI_CSTMR_KEY = %s", (cstmr_key,))
+            cstmr_data = cur.fetchone()
+        else:
+            cstmr_data = None
+        if cstmr_data:
+            meat_cut_ind = cstmr_data.get('MEAT_CUT_IND') or ""
+            rstrnt_ind = cstmr_data.get('RSTRNT_IND') or ""
+            pair_prompt = cstmr_data.get('PAIR_WINE_PROMPT_TXT') or ""
+    except Exception as e:
+        logging.error(f"Error fetching customer config: {e}")
+    finally:
+        if cur:
+            cur.close()
+        if db_conn:
+            db_conn.close()
 
     image_bytes = file.read()
     api_key = os.getenv("VISION_API_KEY")
@@ -304,12 +334,26 @@ def scan_menu():
     try:
         model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
         if scan_type == 'wine':
-            prompt_instr = (
-                "You are an expert sommelier. Extract all individual wine items/names from the following OCR text of a wine list menu.\n"
-                "Return a JSON object with a single key 'items' containing a list of cleaned wine item strings.\n"
-                "Do not include section headings or non-wine items.\n"
-                "Example format: {\"items\": [\"Roseblood d'Estoublon, Rosé, Coteaux Varois en Provence, 2025\", \"Cobb, 'MesFilles,' Chardonnay, Sonoma Coast, 2022\"]}"
-            )
+            if pair_prompt or (meat_cut_ind == 'Y' and rstrnt_ind == 'Y'):
+                prompt_instr = (
+                    "You are an expert sommelier.\n"
+                    f"{pair_prompt}\n\n"
+                    "Extract all individual wines from the following OCR text of a wine list menu.\n"
+                    "For each wine, return an object with:\n"
+                    "- 'name': The wine name, producer, vintage, and region/appellation if available (e.g. 'Château du Parc 2014 (St Emilion)').\n"
+                    "- 'flavor': A concise flavor description formatted like: 'Crisp, with notes of green apple and citrus; moderate tannins; ABV 13.5%'. Include taste notes, tannins, and ABV if known.\n"
+                    "- 'pairing_notes': 2-3 sentences explaining specifically why and how this wine pairs well with dishes, its texture, acidity, and compatibility with food.\n"
+                    "- 'glass_temp': The recommended glass type and serving temperature formatted like: 'White wine glass; serve at 10-12°C.'\n\n"
+                    "Return a JSON object with a single key 'items' containing a list of these wine objects.\n"
+                    "Do not include section headings or non-wine items."
+                )
+            else:
+                prompt_instr = (
+                    "You are an expert sommelier. Extract all individual wine items/names from the following OCR text of a wine list menu.\n"
+                    "Return a JSON object with a single key 'items' containing a list of cleaned wine item strings.\n"
+                    "Do not include section headings or non-wine items.\n"
+                    "Example format: {\"items\": [\"Roseblood d'Estoublon, Rosé, Coteaux Varois en Provence, 2025\", \"Cobb, 'MesFilles,' Chardonnay, Sonoma Coast, 2022\"]}"
+                )
         else:
             prompt_instr = (
                 "You are a food and restaurant expert. Extract all individual food dish items from the following OCR text of a restaurant food menu.\n"
