@@ -32,18 +32,42 @@
 
         {% if rstrnt_scan_ind == 'Y' %}
         <div id="scenarioSelectionContainer" class="form-group mb-3 text-center">
-            <h3 class="wb-question-title" style="color: #ffffff; font-size: 1.25rem; font-weight: bold; margin-bottom: 18px;">Scan Menu or Wine list</h3>
-            <div style="display: flex; gap: 12px; justify-content: center;">
-                <button type="button" id="btnScanMenu" class="wb-btn" style="flex: 1; background-color: #ffd700; color: #000; font-weight: bold; padding: 14px; border-radius: 8px; border: none; font-size: 15px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
-                    <i class="fa-solid fa-utensils"></i> Scan Menu
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+                <button type="button" id="btnScanMenu" class="wb-btn" style="width: 100%; background-color: #ffd700; color: #000; font-weight: bold; padding: 14px; border-radius: 8px; border: none; font-size: 15px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                    <i class="fa-solid fa-utensils"></i> Read or Scan Menu & Enhance Your Dining Experience with the Right Wine
                 </button>
-                <button type="button" id="btnScanWine" class="wb-btn" style="flex: 1; background-color: #ffd700; color: #000; font-weight: bold; padding: 14px; border-radius: 8px; border: none; font-size: 15px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
-                    <i class="fa-solid fa-wine-glass"></i> Scan Wine list
+                <button type="button" id="btnScanWine" class="wb-btn" style="width: 100%; background-color: #ffd700; color: #000; font-weight: bold; padding: 14px; border-radius: 8px; border: none; font-size: 15px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                    <i class="fa-solid fa-wine-glass"></i> Read or Scan Wine List & Enhance Your Dining Experience with the Right Dish
                 </button>
             </div>
-            <button type="button" id="btnLookUpMenu" class="wb-btn" style="width: 100%; background-color: #ffd700; color: #000; font-weight: bold; padding: 14px; border-radius: 8px; border: none; font-size: 15px; cursor: pointer; margin-top: 12px;">
-                Look Up Menu
-            </button>
+        </div>
+
+        <div id="menuOptionSelectionContainer" class="form-group mb-3 text-center" style="display: none;">
+            <div style="display: flex; flex-direction: column; gap: 14px;">
+                <button type="button" id="btnReadMenu" class="wb-btn" style="width: 100%; background-color: #ffd700; color: #000; font-weight: bold; padding: 16px; border-radius: 8px; border: none; font-size: 16px; cursor: pointer;">
+                    Read Menu
+                </button>
+                <button type="button" id="btnScanMenuDirect" class="wb-btn" style="width: 100%; background-color: #ffd700; color: #000; font-weight: bold; padding: 16px; border-radius: 8px; border: none; font-size: 16px; cursor: pointer;">
+                    Scan Menu
+                </button>
+                <button type="button" class="wb-btn-back-scenario" style="background: transparent; border: none; color: #c9a84c; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 4px;">
+                    <i class="fa-solid fa-arrow-left"></i> Back
+                </button>
+            </div>
+        </div>
+
+        <div id="wineListOptionSelectionContainer" class="form-group mb-3 text-center" style="display: none;">
+            <div style="display: flex; flex-direction: column; gap: 14px;">
+                <button type="button" id="btnReadWineList" class="wb-btn" style="width: 100%; background-color: #ffd700; color: #000; font-weight: bold; padding: 16px; border-radius: 8px; border: none; font-size: 16px; cursor: pointer;">
+                    Read Wine List
+                </button>
+                <button type="button" id="btnScanWineDirect" class="wb-btn" style="width: 100%; background-color: #ffd700; color: #000; font-weight: bold; padding: 16px; border-radius: 8px; border: none; font-size: 16px; cursor: pointer;">
+                    Scan Wine List
+                </button>
+                <button type="button" class="wb-btn-back-scenario" style="background: transparent; border: none; color: #c9a84c; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 4px;">
+                    <i class="fa-solid fa-arrow-left"></i> Back
+                </button>
+            </div>
         </div>
 
         <div id="recognizedItemsContainer" class="form-group mb-3" style="display: none;">
@@ -59,19 +83,37 @@
 
         <div id="dishPairingChoiceContainer" class="form-group mb-3 text-center" style="display: none;">
             <div style="display: flex; gap: 12px; justify-content: center;">
+                {% if generic_rstrnt_ind != 'Y' %}
                 <button type="button" id="btnUseWineList" class="wb-btn" style="flex: 1; background-color: #ffd700; color: #000; font-weight: bold; padding: 14px; border-radius: 8px; border: none; font-size: 15px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
-                    Use Wine List
+                    Use Wine List to Pair
                 </button>
+                {% endif %}
                 <button type="button" id="btnScanWineListChoice" class="wb-btn" style="flex: 1; background-color: #ffd700; color: #000; font-weight: bold; padding: 14px; border-radius: 8px; border: none; font-size: 15px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
-                    Scan Wine List
+                    Scan Wine List to Pair
+                </button>
+            </div>
+        </div>
+
+        <div id="winePairingChoiceContainer" class="form-group mb-3 text-center" style="display: none;">
+            <div style="display: flex; flex-direction: column; gap: 14px;">
+                <button type="button" id="btnReadMenuToPair" class="wb-btn" style="width: 100%; background-color: #ffd700; color: #000; font-weight: bold; padding: 16px; border-radius: 8px; border: none; font-size: 16px; cursor: pointer;">
+                    Read Menu
+                </button>
+                <button type="button" id="btnScanMenuToPairChoice" class="wb-btn" style="width: 100%; background-color: #ffd700; color: #000; font-weight: bold; padding: 16px; border-radius: 8px; border: none; font-size: 16px; cursor: pointer;">
+                    Scan Menu
+                </button>
+                <button type="button" id="btnBackFromWinePairingChoice" style="background: transparent; border: none; color: #c9a84c; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 4px;">
+                    <i class="fa-solid fa-arrow-left"></i> Back
                 </button>
             </div>
         </div>
 
         <input type="hidden" id="wine_name" name="wine_name" value="">
+        <input type="hidden" id="scanned_wine_list" name="scanned_wine_list" value="">
+        <input type="hidden" id="scanned_dish_list" name="scanned_dish_list" value="">
         {% endif %}
 
-        <div id="inputContainer" class="wb-input-wrap" {% if rstrnt_scan_ind == 'Y' %}style="display: none;"{% endif %}>
+        <div id="inputContainer" class="wb-input-wrap" {% if rstrnt_scan_ind == 'Y' or generic_rstrnt_ind == 'Y' %}style="display: none;"{% endif %}>
             <input type="text" id="user_input" name="user_input" class="wb-input" placeholder="Enter a dish, cuisine, holiday, or occasion...">
             <button type="button" id="voiceButton" class="wb-btn-icon" aria-label="Voice input">
                 <i class="fa-solid fa-microphone"></i>
@@ -116,7 +158,7 @@
             <video id="cameraVideo" autoplay playsinline style="width: 100%; border-radius: 8px; background: #000; max-height: 350px; object-fit: cover; transform: scaleX(1);"></video>
             <div style="display: flex; gap: 10px; width: 100%;">
                 <button type="button" id="captureButton" class="wb-btn wb-btn-primary" style="flex: 1; padding: 10px;">
-                    <i class="fa-solid fa-camera"></i> Capture Photo
+                    <i class="fa-solid fa-camera"></i> Scan
                 </button>
                 <button type="button" id="closeCameraButton" class="wb-btn wb-btn-secondary" style="flex: 1; padding: 10px; border-color: #ff4d4d; color: #ff4d4d;">
                     Cancel
@@ -341,6 +383,7 @@
     }
 
     $(document).ready(function () {
+        var generic_rstrnt_ind = {{ generic_rstrnt_ind | default('N', true) | tojson }};
         document.getElementById("intoductionMessage").innerHTML = {{ intro_text | default('', true) | tojson }};
         var matches_list = {{ matches_list | default([], true) | tojson }};
         var dropdown = $('#wordSlider');
@@ -352,11 +395,13 @@
             matches_list.forEach(function (word) {
                 dropdown.append($('<option></option>').text(word).val(word));
             });
-        } else {
+        } else if (rstrnt_scan_ind !== 'Y' && generic_rstrnt_ind !== 'Y') {
             inputContainer.show();
+        } else {
+            inputContainer.hide();
         }
 
-        if (rstrnt_scan_ind !== 'Y') {
+        if (rstrnt_scan_ind !== 'Y' && generic_rstrnt_ind !== 'Y') {
             $('#wordSlider').on('change', function () {
                 document.getElementById("user_input").value = '';
             });
@@ -375,22 +420,42 @@
         });
 
         var rstrnt_scan_ind = {{ rstrnt_scan_ind | default('N', true) | tojson }};
-        if (rstrnt_scan_ind === 'Y') {
+        if (rstrnt_scan_ind === 'Y' || generic_rstrnt_ind === 'Y') {
             var currentScanType = 'food';
             var currentFile = null;
             var cameraStream = null;
             var originalIntroLine = $('#introFirstLine').text();
+            var isDishToWineFlow = false;
+            var saved_menu_items = {{ saved_menu_items | default([], true) | tojson }};
+            var saved_wine_items = {{ saved_wine_items | default([], true) | tojson }};
 
             window.showStep = function (stepName) {
                 $('#scenarioSelectionContainer').hide();
+                $('#menuOptionSelectionContainer').hide();
+                $('#wineListOptionSelectionContainer').hide();
                 $('#wordSliderContainer').hide();
                 $('#recognizedItemsContainer').hide();
                 $('#dishPairingChoiceContainer').hide();
+                $('#winePairingChoiceContainer').hide();
+                $('#inputContainer').hide();
                 $('.wb-actions-row').hide();
 
                 if (stepName === 'scenario') {
+                    isDishToWineFlow = false;
+                    $('#user_input').val('');
+                    $('#wine_name').val('');
+                    $('#scanned_wine_list').val('');
+                    $('#scanned_dish_list').val('');
+                    $('#wordSlider').val('');
+                    sessionStorage.removeItem("selectedWord");
                     $('#introFirstLine').text(originalIntroLine);
                     $('#scenarioSelectionContainer').show();
+                } else if (stepName === 'menu_option') {
+                    $('#introFirstLine').text(originalIntroLine);
+                    $('#menuOptionSelectionContainer').show();
+                } else if (stepName === 'wine_list_option') {
+                    $('#introFirstLine').text(originalIntroLine);
+                    $('#wineListOptionSelectionContainer').show();
                 } else if (stepName === 'food_dropdown') {
                     $('#introFirstLine').text(originalIntroLine);
                     $('#wordSliderContainer').show();
@@ -399,31 +464,98 @@
                 } else if (stepName === 'dish_pairing_choice') {
                     $('#introFirstLine').text("Choose your wine and we'll recommend a perfect dish");
                     $('#dishPairingChoiceContainer').show();
+                } else if (stepName === 'wine_pairing_choice') {
+                    $('#introFirstLine').text(originalIntroLine);
+                    $('#winePairingChoiceContainer').show();
                 }
             };
+
+            window.addEventListener('popstate', function (event) {
+                if (event.state && event.state.step) {
+                    showStep(event.state.step);
+                } else {
+                    showStep('scenario');
+                }
+            });
 
             history.replaceState({ step: 'scenario' }, "");
             showStep('scenario');
 
             $('#btnScanMenu').on('click', function () {
+                isDishToWineFlow = false;
+                $('#user_input').val('');
+                $('#wine_name').val('');
+                $('#scanned_wine_list').val('');
+                $('#scanned_dish_list').val('');
+                currentScanType = 'food';
+                history.pushState({ step: 'menu_option' }, "");
+                showStep('menu_option');
+            });
+
+            $('#btnScanWine').on('click', function () {
+                isDishToWineFlow = false;
+                $('#user_input').val('');
+                $('#wine_name').val('');
+                $('#scanned_wine_list').val('');
+                $('#scanned_dish_list').val('');
+                currentScanType = 'wine';
+                history.pushState({ step: 'wine_list_option' }, "");
+                showStep('wine_list_option');
+            });
+
+            $('#btnReadMenu').on('click', function () {
+                currentScanType = 'food';
+                if (saved_menu_items && saved_menu_items.length > 0) {
+                    displayRecognizedItems(saved_menu_items);
+                } else {
+                    alert('No menu is currently saved for this restaurant. Please scan the menu first.');
+                }
+            });
+
+            $('#btnScanMenuDirect').on('click', function () {
                 currentScanType = 'food';
                 openCameraOrPicker('Point Camera at Menu');
             });
 
-            $('#btnScanWine').on('click', function () {
+            $('#btnReadWineList').on('click', function () {
                 currentScanType = 'wine';
+                isDishToWineFlow = false;
+                if (saved_wine_items && saved_wine_items.length > 0) {
+                    displayRecognizedItems(saved_wine_items);
+                } else {
+                    alert('No wine list is currently saved for this restaurant. Please scan the wine list first.');
+                }
+            });
+
+            $('#btnScanWineDirect').on('click', function () {
+                currentScanType = 'wine';
+                isDishToWineFlow = false;
                 openCameraOrPicker('Point Camera at Wine List');
             });
 
-            $('#btnLookUpMenu').on('click', function () {
-                history.pushState({ step: 'food_dropdown' }, "");
-                showStep('food_dropdown');
-            });
-
-            $('#btnBackFromItems').on('click', function () {
-                $('#introFirstLine').text(originalIntroLine);
+            $('.wb-btn-back-scenario').on('click', function () {
                 history.pushState({ step: 'scenario' }, "");
                 showStep('scenario');
+            });
+
+
+            $('#btnBackFromItems').on('click', function () {
+                if ($('#wine_name').val() && currentScanType === 'food') {
+                    history.pushState({ step: 'wine_pairing_choice' }, "");
+                    showStep('wine_pairing_choice');
+                } else if (isDishToWineFlow && $('#user_input').val() && currentScanType === 'wine') {
+                    history.pushState({ step: 'dish_pairing_choice' }, "");
+                    showStep('dish_pairing_choice');
+                } else if (currentScanType === 'wine' && !isDishToWineFlow) {
+                    history.pushState({ step: 'wine_list_option' }, "");
+                    showStep('wine_list_option');
+                } else if (currentScanType === 'food' && !$('#wine_name').val()) {
+                    history.pushState({ step: 'menu_option' }, "");
+                    showStep('menu_option');
+                } else {
+                    history.pushState({ step: 'scenario' }, "");
+                    showStep('scenario');
+                }
             });
 
             $('#btnUseWineList').on('click', function () {
@@ -431,13 +563,34 @@
             });
 
             $('#btnScanWineListChoice').on('click', function () {
+                isDishToWineFlow = true;
                 currentScanType = 'wine';
                 openCameraOrPicker('Point Camera at Wine List');
+            });
+
+            $('#btnReadMenuToPair').on('click', function () {
+                currentScanType = 'food';
+                if (saved_menu_items && saved_menu_items.length > 0) {
+                    displayRecognizedItems(saved_menu_items);
+                } else {
+                    alert('No menu is currently saved for this restaurant. Please scan the menu first.');
+                }
+            });
+
+            $('#btnScanMenuToPairChoice').on('click', function () {
+                currentScanType = 'food';
+                openCameraOrPicker('Point Camera at Menu');
+            });
+
+            $('#btnBackFromWinePairingChoice').on('click', function () {
+                history.pushState({ step: 'recognized_items' }, "");
+                showStep('recognized_items');
             });
 
             $('#wordSlider').on('change', function () {
                 var selectedDish = $(this).val();
                 if (selectedDish) {
+                    isDishToWineFlow = true;
                     $('#user_input').val(selectedDish);
                     sessionStorage.setItem("selectedWord", selectedDish);
                     history.pushState({ step: 'dish_pairing_choice' }, "");
@@ -524,6 +677,11 @@
                 .then(data => {
                     $('#loaderOverlay').addClass('wb-hidden');
                     if (data.items && data.items.length > 0) {
+                        if (currentScanType === 'wine') {
+                            saved_wine_items = data.items;
+                        } else {
+                            saved_menu_items = data.items;
+                        }
                         displayRecognizedItems(data.items);
                     } else if (data.error) {
                         alert('Error: ' + data.error);
@@ -542,7 +700,23 @@
                 listEl.empty();
 
                 if (currentScanType === 'wine') {
-                    $('#introFirstLine').text("Choose your wine and we'll recommend the perfect dish match");
+                    var wineStrings = items.map(function (it) {
+                        if (typeof it === 'object' && it !== null) {
+                            var details = [it.name || ''];
+                            if (it.flavor) details.push('Flavor: ' + it.flavor);
+                            if (it.pairing_notes) details.push('Pairing Notes: ' + it.pairing_notes);
+                            if (it.glass_temp) details.push('Best Glass/Temp: ' + it.glass_temp);
+                            return details.join(' | ');
+                        }
+                        return it;
+                    }).join('\n');
+                    $('#scanned_wine_list').val(wineStrings);
+
+                    if (!isDishToWineFlow) {
+                        $('#introFirstLine').text("Choose your wine and we'll recommend the perfect dish match");
+                    } else {
+                        $('#introFirstLine').text(originalIntroLine);
+                    }
                     $('#recognizedItemsTitle').text('Recognized Wines');
                     items.forEach(function (item) {
                         if (typeof item === 'object' && item !== null) {
@@ -551,11 +725,14 @@
                             var pairingNotes = item.pairing_notes || '';
                             var glassTemp = item.glass_temp || '';
 
-                            var card = $('<div class="wb-wine-card" style="background: #2a1a12; border: 1px solid #443022; border-radius: 8px; padding: 14px; cursor: pointer; text-align: left; transition: all 0.2s ease;"></div>');
-                            card.hover(
-                                function () { $(this).css({ 'border-color': '#ffd700', 'background-color': '#352117' }); },
-                                function () { $(this).css({ 'border-color': '#443022', 'background-color': '#2a1a12' }); }
-                            );
+                            var card = $('<div class="wb-wine-card" style="background: #2a1a12; border: 1px solid #443022; border-radius: 8px; padding: 14px; text-align: left; transition: all 0.2s ease;"></div>');
+                            if (!isDishToWineFlow) {
+                                card.css('cursor', 'pointer');
+                                card.hover(
+                                    function () { $(this).css({ 'border-color': '#ffd700', 'background-color': '#352117' }); },
+                                    function () { $(this).css({ 'border-color': '#443022', 'background-color': '#2a1a12' }); }
+                                );
+                            }
 
                             var cardHtml = '<div style="color: #ffd700; font-weight: bold; font-size: 15px; margin-bottom: 8px;">' + $('<div>').text(itemName).html() + '</div>';
                             if (flavor) {
@@ -569,30 +746,84 @@
                             }
 
                             card.html(cardHtml);
-                            card.on('click', function () {
-                                onItemSelected(itemName);
-                            });
+                            if (!isDishToWineFlow) {
+                                card.on('click', function () {
+                                    onItemSelected(itemName);
+                                });
+                            }
                             listEl.append(card);
                         } else {
-                            var btn = $('<button type="button" class="wb-btn" style="width: 100%; text-align: left; background: #2a1a12; color: #ffffff; border: 1px solid #443022; border-radius: 8px; padding: 12px 16px; cursor: pointer; font-size: 14px; display: flex; justify-content: space-between; align-items: center;"></button>');
-                            btn.html('<span>' + $('<div>').text(item).html() + '</span><i class="fa-solid fa-chevron-right" style="color: #c9a84c; font-size: 12px;"></i>');
-                            btn.on('click', function () {
-                                onItemSelected(item);
-                            });
+                            var btn = $('<button type="button" class="wb-btn" style="width: 100%; text-align: left; background: #2a1a12; color: #ffffff; border: 1px solid #443022; border-radius: 8px; padding: 12px 16px; font-size: 14px; display: flex; justify-content: space-between; align-items: center;"></button>');
+                            if (!isDishToWineFlow) {
+                                btn.css('cursor', 'pointer');
+                                btn.html('<span>' + $('<div>').text(item).html() + '</span><i class="fa-solid fa-chevron-right" style="color: #c9a84c; font-size: 12px;"></i>');
+                                btn.on('click', function () {
+                                    onItemSelected(item);
+                                });
+                            } else {
+                                btn.html('<span>' + $('<div>').text(item).html() + '</span>');
+                            }
                             listEl.append(btn);
                         }
                     });
-                } else {
-                    $('#recognizedItemsTitle').text('Saved Menus');
-                    items.forEach(function (item) {
-                        var itemName = typeof item === 'object' && item !== null ? (item.name || '') : item;
-                        var btn = $('<button type="button" class="wb-btn" style="width: 100%; text-align: left; background: #2a1a12; color: #ffffff; border: 1px solid #443022; border-radius: 8px; padding: 12px 16px; cursor: pointer; font-size: 14px; display: flex; justify-content: space-between; align-items: center;"></button>');
-                        btn.html('<span>' + $('<div>').text(itemName).html() + '</span><i class="fa-solid fa-chevron-right" style="color: #c9a84c; font-size: 12px;"></i>');
-                        btn.on('click', function () {
-                            onItemSelected(itemName);
+
+                    if (isDishToWineFlow) {
+                        var startPairDiv = $('<div style="margin-top: 14px; text-align: center;"><button type="button" id="btnStartToPair" class="wb-btn" style="background-color: #ffd700; color: #000; font-weight: bold; padding: 14px 28px; border-radius: 8px; border: none; font-size: 15px; cursor: pointer; width: 100%;">Start to Pair</button></div>');
+                        startPairDiv.find('#btnStartToPair').on('click', function () {
+                            $('#wine_name').val('');
+                            $('#loaderOverlay').removeClass('wb-hidden');
+                            document.getElementById("loaderMessage").textContent = "Consulting the sommelier...";
+                            setTimeout(function () {
+                                document.getElementById("login_form").submit();
+                            }, 500);
                         });
-                        listEl.append(btn);
-                    });
+                        listEl.append(startPairDiv);
+                    }
+                } else {
+                    if ($('#wine_name').val()) {
+                        $('#introFirstLine').text('Scroll menu and click "Start to Pair"');
+                        $('#recognizedItemsTitle').text('Saved Menus');
+                        var dishStrings = items.map(function (it) {
+                            return typeof it === 'object' && it !== null ? (it.name || '') : it;
+                        }).join('\n');
+                        $('#scanned_dish_list').val(dishStrings);
+
+                        items.forEach(function (item) {
+                            var itemName = typeof item === 'object' && item !== null ? (item.name || '') : item;
+                            var btn = $('<button type="button" class="wb-btn wb-scanned-dish-btn" style="width: 100%; text-align: left; background: #2a1a12; color: #ffffff; border: 1px solid #443022; border-radius: 8px; padding: 12px 16px; cursor: pointer; font-size: 14px; display: flex; justify-content: space-between; align-items: center; transition: all 0.2s ease;"></button>');
+                            btn.html('<span>' + $('<div>').text(itemName).html() + '</span><i class="fa-solid fa-chevron-right" style="color: #c9a84c; font-size: 12px;"></i>');
+                            btn.on('click', function () {
+                                $('.wb-scanned-dish-btn').css({ 'border-color': '#443022', 'background-color': '#2a1a12' });
+                                $(this).css({ 'border-color': '#ffd700', 'background-color': '#352117' });
+                                $('#user_input').val(itemName);
+                                sessionStorage.setItem("selectedWord", itemName);
+                            });
+                            listEl.append(btn);
+                        });
+
+                        var startPairDiv = $('<div style="margin-top: 14px; text-align: center;"><button type="button" id="btnStartToPairFood" class="wb-btn" style="background-color: #ffd700; color: #000; font-weight: bold; padding: 14px 28px; border-radius: 8px; border: none; font-size: 15px; cursor: pointer; width: 100%;">Start to pair</button></div>');
+                        startPairDiv.find('#btnStartToPairFood').on('click', function () {
+                            $('#loaderOverlay').removeClass('wb-hidden');
+                            document.getElementById("loaderMessage").textContent = "Consulting the sommelier...";
+                            setTimeout(function () {
+                                document.getElementById("login_form").submit();
+                            }, 500);
+                        });
+                        listEl.append(startPairDiv);
+                    } else {
+                        isDishToWineFlow = true;
+                        $('#introFirstLine').text(originalIntroLine);
+                        $('#recognizedItemsTitle').text('Saved Menus');
+                        items.forEach(function (item) {
+                            var itemName = typeof item === 'object' && item !== null ? (item.name || '') : item;
+                            var btn = $('<button type="button" class="wb-btn" style="width: 100%; text-align: left; background: #2a1a12; color: #ffffff; border: 1px solid #443022; border-radius: 8px; padding: 12px 16px; cursor: pointer; font-size: 14px; display: flex; justify-content: space-between; align-items: center;"></button>');
+                            btn.html('<span>' + $('<div>').text(itemName).html() + '</span><i class="fa-solid fa-chevron-right" style="color: #c9a84c; font-size: 12px;"></i>');
+                            btn.on('click', function () {
+                                onItemSelected(itemName);
+                            });
+                            listEl.append(btn);
+                        });
+                    }
                 }
 
                 history.pushState({ step: 'recognized_items' }, "");
@@ -601,6 +832,7 @@
 
             function onItemSelected(item) {
                 if (currentScanType === 'food') {
+                    isDishToWineFlow = true;
                     var dishName = typeof item === 'object' && item !== null ? (item.name || '') : item;
                     $('#user_input').val(dishName);
                     sessionStorage.setItem("selectedWord", dishName);
@@ -609,14 +841,19 @@
                 } else if (currentScanType === 'wine') {
                     var wineName = typeof item === 'object' && item !== null ? (item.name || '') : item;
                     $('#wine_name').val(wineName);
-                    if (!$('#user_input').val()) {
-                        $('#user_input').val(wineName);
+                    $('#scanned_wine_list').val('');
+                    if (!isDishToWineFlow) {
+                        $('#user_input').val('');
+                        $('#scanned_dish_list').val('');
+                        history.pushState({ step: 'wine_pairing_choice' }, "");
+                        showStep('wine_pairing_choice');
+                    } else {
+                        $('#loaderOverlay').removeClass('wb-hidden');
+                        document.getElementById("loaderMessage").textContent = "Consulting the sommelier...";
+                        setTimeout(function () {
+                            document.getElementById("login_form").submit();
+                        }, 500);
                     }
-                    $('#loaderOverlay').removeClass('wb-hidden');
-                    document.getElementById("loaderMessage").textContent = "Consulting the sommelier...";
-                    setTimeout(function () {
-                        document.getElementById("login_form").submit();
-                    }, 500);
                 }
             }
 

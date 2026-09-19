@@ -22,6 +22,27 @@ def slugify(text):
     text = re.sub(r'\-\-+', '-', text)
     return text.strip('-')
 
+def parse_scnd_items(raw_text):
+    if not raw_text:
+        return []
+    raw_text = str(raw_text).strip()
+    if not raw_text:
+        return []
+    try:
+        data = json.loads(raw_text)
+        if isinstance(data, list):
+            return data
+    except Exception:
+        pass
+    asterisk_items = [m.strip() for m in re.findall(r'\*([^\*]+)\*', raw_text) if m.strip()]
+    if asterisk_items:
+        return asterisk_items
+    if '\n' in raw_text:
+        return [line.strip().strip('*').strip() for line in raw_text.split('\n') if line.strip().strip('*').strip()]
+    if ',' in raw_text:
+        return [item.strip().strip('*').strip() for item in raw_text.split(',') if item.strip().strip('*').strip()]
+    return [raw_text.strip('*').strip()]
+
 def find_customer_by_slug(slug):
     db_connection = create_database_connection()
     cursor = db_connection.cursor(dictionary=True, buffered=True)
@@ -54,19 +75,23 @@ def show_image(slug):
         result = cursor.fetchone()
 
         if result is not None and result['CANA_IND'] == 'Y':
-            query = "SELECT RSTRNT_IND,RSTRNT_SCAN_IND,MEAT_CUT_IND,PRIME_IND,AI_CSTMR_KEY,LOGO_PATH, CHTBX_FRST_LINE, CHTBX_SCND_LINE, OPTION_1_TXT, OPTION_2_TXT, OPTION_3_TXT, OPTION_4_TXT, OPTION_5_TXT, OPTION_6_TXT, OPTION_7_TXT, OPTION_8_TXT, OPTION_9_TXT, OPTION_10_TXT FROM ai_cstmr WHERE AI_CSTMR_START_TXT LIKE %s"
+            query = "SELECT RSTRNT_IND,RSTRNT_SCAN_IND,GENERIC_RSTRNT_IND,MEAT_CUT_IND,PRIME_IND,AI_CSTMR_KEY,LOGO_PATH, CHTBX_FRST_LINE, CHTBX_SCND_LINE, SCND_MENU, SCND_WINE, OPTION_1_TXT, OPTION_2_TXT, OPTION_3_TXT, OPTION_4_TXT, OPTION_5_TXT, OPTION_6_TXT, OPTION_7_TXT, OPTION_8_TXT, OPTION_9_TXT, OPTION_10_TXT FROM ai_cstmr WHERE AI_CSTMR_START_TXT LIKE %s"
             cursor.execute(query,('%' + page_name + '%',))
             result = cursor.fetchone()
             if result is not None:
                 meat_cut_ind = result['MEAT_CUT_IND']
                 rstrnt_ind = result['RSTRNT_IND']
                 rstrnt_scan_ind = result.get('RSTRNT_SCAN_IND') or 'N'
+                generic_rstrnt_ind = result.get('GENERIC_RSTRNT_IND') or 'N'
                 prime_ind = result['PRIME_IND']
                 logo_path = result['LOGO_PATH']
                 first_line = result['CHTBX_FRST_LINE']
                 second_line_from_database = result['CHTBX_SCND_LINE']
                 ai_cstmr_key = result['AI_CSTMR_KEY']
                 session['ai_cstmr_key'] = ai_cstmr_key
+
+                saved_menu_items = parse_scnd_items(result.get('SCND_MENU'))
+                saved_wine_items = parse_scnd_items(result.get('SCND_WINE'))
 
                 options_list = []
                 for i in range(1, 11):
@@ -74,15 +99,15 @@ def show_image(slug):
                     if opt and opt != 'null' and opt != '':
                         options_list.append({'id': i, 'text': opt})
 
-                if meat_cut_ind == 'Y':
+                if meat_cut_ind == 'Y' and second_line_from_database:
                     second_line_from_database = re.sub(r'\*([^\*]+)\*', make_clickable, second_line_from_database)
                 session['theme_color'] = 'Y'
-                return render_template('customer_chat.html', logo_path=logo_path, first_line=first_line, second_line=second_line_from_database,customer_name=page_name, color = "Y", options = options_list, rstrnt_ind=rstrnt_ind, rstrnt_scan_ind=rstrnt_scan_ind, prime_ind=prime_ind)
+                return render_template('customer_chat.html', logo_path=logo_path, first_line=first_line, second_line=second_line_from_database,customer_name=page_name, color = "Y", options = options_list, rstrnt_ind=rstrnt_ind, rstrnt_scan_ind=rstrnt_scan_ind, generic_rstrnt_ind=generic_rstrnt_ind, saved_menu_items=saved_menu_items, saved_wine_items=saved_wine_items, prime_ind=prime_ind)
             else:
                 return {'page_name': page_name}
 
         elif result is not None and result['BEER_IND'] == 'Y':
-            query = "SELECT RSTRNT_IND,RSTRNT_SCAN_IND,MEAT_CUT_IND,PRIME_IND,AI_CSTMR_KEY,LOGO_PATH, CHTBX_FRST_LINE, CHTBX_SCND_LINE, OPTION_1_TXT, OPTION_2_TXT, OPTION_3_TXT, OPTION_4_TXT, OPTION_5_TXT, OPTION_6_TXT, OPTION_7_TXT, OPTION_8_TXT, OPTION_9_TXT, OPTION_10_TXT FROM ai_cstmr WHERE AI_CSTMR_START_TXT LIKE %s"
+            query = "SELECT RSTRNT_IND,RSTRNT_SCAN_IND,GENERIC_RSTRNT_IND,MEAT_CUT_IND,PRIME_IND,AI_CSTMR_KEY,LOGO_PATH, CHTBX_FRST_LINE, CHTBX_SCND_LINE, SCND_MENU, SCND_WINE, OPTION_1_TXT, OPTION_2_TXT, OPTION_3_TXT, OPTION_4_TXT, OPTION_5_TXT, OPTION_6_TXT, OPTION_7_TXT, OPTION_8_TXT, OPTION_9_TXT, OPTION_10_TXT FROM ai_cstmr WHERE AI_CSTMR_START_TXT LIKE %s"
             cursor.execute(query,('%' + page_name + '%',))
             result = cursor.fetchone()
 
@@ -90,12 +115,16 @@ def show_image(slug):
                 meat_cut_ind = result['MEAT_CUT_IND']
                 rstrnt_ind = result['RSTRNT_IND']
                 rstrnt_scan_ind = result.get('RSTRNT_SCAN_IND') or 'N'
+                generic_rstrnt_ind = result.get('GENERIC_RSTRNT_IND') or 'N'
                 prime_ind = result['PRIME_IND']
                 logo_path = result['LOGO_PATH']
                 first_line = result['CHTBX_FRST_LINE']
                 second_line_from_database = result['CHTBX_SCND_LINE']
                 ai_cstmr_key = result['AI_CSTMR_KEY']
                 session['ai_cstmr_key'] = ai_cstmr_key
+
+                saved_menu_items = parse_scnd_items(result.get('SCND_MENU'))
+                saved_wine_items = parse_scnd_items(result.get('SCND_WINE'))
 
                 options_list = []
                 for i in range(1, 11):
@@ -105,30 +134,34 @@ def show_image(slug):
 
                 matches_list = []
                 intro_text = ""
-                if meat_cut_ind == 'Y':
+                if meat_cut_ind == 'Y' and second_line_from_database:
                     intro_text_match = re.match(r'([^*]+):', second_line_from_database)
                     intro_text = intro_text_match.group(1)+":" if intro_text_match else ""
                     matches_list = re.findall(r'\*([^\*]+)\*', second_line_from_database)
 
                 matches_list = sorted(matches_list)
                 session['theme_color'] = 'G'
-                return render_template('customer_chat.html',intro_text=intro_text, matches_list = matches_list,logo_path=logo_path, first_line=first_line, second_line=second_line_from_database,customer_name=page_name, color = "G", options = options_list, rstrnt_ind=rstrnt_ind, rstrnt_scan_ind=rstrnt_scan_ind, prime_ind=prime_ind)
+                return render_template('customer_chat.html',intro_text=intro_text, matches_list = matches_list,logo_path=logo_path, first_line=first_line, second_line=second_line_from_database,customer_name=page_name, color = "G", options = options_list, rstrnt_ind=rstrnt_ind, rstrnt_scan_ind=rstrnt_scan_ind, generic_rstrnt_ind=generic_rstrnt_ind, saved_menu_items=saved_menu_items, saved_wine_items=saved_wine_items, prime_ind=prime_ind)
             else:
                 return {'page_name': page_name}
         else:
-            query = "SELECT RSTRNT_IND,RSTRNT_SCAN_IND,MEAT_CUT_IND,PRIME_IND,AI_CSTMR_KEY,LOGO_PATH, CHTBX_FRST_LINE, CHTBX_SCND_LINE, OPTION_1_TXT, OPTION_2_TXT, OPTION_3_TXT, OPTION_4_TXT, OPTION_5_TXT, OPTION_6_TXT, OPTION_7_TXT, OPTION_8_TXT, OPTION_9_TXT, OPTION_10_TXT FROM ai_cstmr WHERE AI_CSTMR_START_TXT LIKE %s"
+            query = "SELECT RSTRNT_IND,RSTRNT_SCAN_IND,GENERIC_RSTRNT_IND,MEAT_CUT_IND,PRIME_IND,AI_CSTMR_KEY,LOGO_PATH, CHTBX_FRST_LINE, CHTBX_SCND_LINE, SCND_MENU, SCND_WINE, OPTION_1_TXT, OPTION_2_TXT, OPTION_3_TXT, OPTION_4_TXT, OPTION_5_TXT, OPTION_6_TXT, OPTION_7_TXT, OPTION_8_TXT, OPTION_9_TXT, OPTION_10_TXT FROM ai_cstmr WHERE AI_CSTMR_START_TXT LIKE %s"
             cursor.execute(query,('%' + page_name + '%',))
             result = cursor.fetchone()
             if result is not None:
                 meat_cut_ind = result['MEAT_CUT_IND']
                 rstrnt_ind = result['RSTRNT_IND']
                 rstrnt_scan_ind = result.get('RSTRNT_SCAN_IND') or 'N'
+                generic_rstrnt_ind = result.get('GENERIC_RSTRNT_IND') or 'N'
                 prime_ind = result['PRIME_IND']
                 logo_path = result['LOGO_PATH']
                 first_line = result['CHTBX_FRST_LINE']
                 second_line_from_database = result['CHTBX_SCND_LINE']
                 ai_cstmr_key = result['AI_CSTMR_KEY']
                 session['ai_cstmr_key'] = ai_cstmr_key
+
+                saved_menu_items = parse_scnd_items(result.get('SCND_MENU'))
+                saved_wine_items = parse_scnd_items(result.get('SCND_WINE'))
 
                 options_list = []
                 for i in range(1, 11):
@@ -139,7 +172,7 @@ def show_image(slug):
                 query = "SELECT CSTMR_WINE_URL FROM CSTMR_WIN_SELR WHERE AI_CSTMR_KEY = %s"
                 cursor.execute(query, (ai_cstmr_key,))
                 result = cursor.fetchone()
-                image_url = result['CSTMR_WINE_URL']
+                image_url = result['CSTMR_WINE_URL'] if result else False
 
                 if image_url == '' or image_url == 'null':
                     image_url = False
@@ -147,14 +180,14 @@ def show_image(slug):
                 matches_list = []
                 intro_text = ""
 
-                if meat_cut_ind == 'Y':
+                if meat_cut_ind == 'Y' and second_line_from_database:
                     intro_text_match = re.match(r'([^*]+):', second_line_from_database)
                     intro_text = intro_text_match.group(1)+":" if intro_text_match else ""
                     matches_list = re.findall(r'\*([^\*]+)\*', second_line_from_database)
                 matches_list = sorted(matches_list)
                 session['theme_color'] = 'N'
                 return render_template('customer_chat.html',intro_text=intro_text, matches_list = matches_list, ai_cstmr_key = ai_cstmr_key, logo_path=logo_path, image_url = image_url,
-                first_line=first_line, second_line=second_line_from_database,customer_name=page_name, color = "N", options = options_list, rstrnt_ind=rstrnt_ind, rstrnt_scan_ind=rstrnt_scan_ind, prime_ind=prime_ind)
+                first_line=first_line, second_line=second_line_from_database,customer_name=page_name, color = "N", options = options_list, rstrnt_ind=rstrnt_ind, rstrnt_scan_ind=rstrnt_scan_ind, generic_rstrnt_ind=generic_rstrnt_ind, saved_menu_items=saved_menu_items, saved_wine_items=saved_wine_items, prime_ind=prime_ind)
             else:
                 return {'page_name': page_name}
     except Exception as e:
@@ -334,26 +367,17 @@ def scan_menu():
     try:
         model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
         if scan_type == 'wine':
-            if pair_prompt or (meat_cut_ind == 'Y' and rstrnt_ind == 'Y'):
-                prompt_instr = (
-                    "You are an expert sommelier.\n"
-                    f"{pair_prompt}\n\n"
-                    "Extract all individual wines from the following OCR text of a wine list menu.\n"
-                    "For each wine, return an object with:\n"
-                    "- 'name': The wine name, producer, vintage, and region/appellation if available (e.g. 'Château du Parc 2014 (St Emilion)').\n"
-                    "- 'flavor': A concise flavor description formatted like: 'Crisp, with notes of green apple and citrus; moderate tannins; ABV 13.5%'. Include taste notes, tannins, and ABV if known.\n"
-                    "- 'pairing_notes': 2-3 sentences explaining specifically why and how this wine pairs well with dishes, its texture, acidity, and compatibility with food.\n"
-                    "- 'glass_temp': The recommended glass type and serving temperature formatted like: 'White wine glass; serve at 10-12°C.'\n\n"
-                    "Return a JSON object with a single key 'items' containing a list of these wine objects.\n"
-                    "Do not include section headings or non-wine items."
-                )
-            else:
-                prompt_instr = (
-                    "You are an expert sommelier. Extract all individual wine items/names from the following OCR text of a wine list menu.\n"
-                    "Return a JSON object with a single key 'items' containing a list of cleaned wine item strings.\n"
-                    "Do not include section headings or non-wine items.\n"
-                    "Example format: {\"items\": [\"Roseblood d'Estoublon, Rosé, Coteaux Varois en Provence, 2025\", \"Cobb, 'MesFilles,' Chardonnay, Sonoma Coast, 2022\"]}"
-                )
+            prompt_instr = (
+                "You are an expert sommelier.\n\n"
+                "Extract all individual wines from the following OCR text of a wine list menu. You must extract every single wine listed without limiting the total count.\n"
+                "For each wine, return an object with:\n"
+                "- 'name': The wine name, producer, vintage, and region/appellation if available (e.g. 'Château du Parc 2014 (St Emilion)').\n"
+                "- 'flavor': A concise flavor description formatted like: 'Crisp, with notes of green apple and citrus; moderate tannins; ABV 13.5%'. Include taste notes, tannins, and ABV if known.\n"
+                "- 'pairing_notes': 2-3 sentences explaining specifically why and how this wine pairs well with dishes, its texture, acidity, and compatibility with food.\n"
+                "- 'glass_temp': The recommended glass type and serving temperature formatted like: 'White wine glass; serve at 10-12°C.'\n\n"
+                "Return a JSON object with a single key 'items' containing a list of these wine objects.\n"
+                "Do not include section headings or non-wine items."
+            )
         else:
             prompt_instr = (
                 "You are a food and restaurant expert. Extract all individual food dish items from the following OCR text of a restaurant food menu.\n"
@@ -376,6 +400,31 @@ def scan_menu():
     except Exception as e:
         items = [line.strip() for line in raw_text.split('\n') if len(line.strip()) > 3]
 
+    if items:
+        db_conn = None
+        cur = None
+        try:
+            db_conn = create_database_connection()
+            cur = db_conn.cursor()
+            column_to_update = 'SCND_WINE' if scan_type == 'wine' else 'SCND_MENU'
+            if scan_type == 'food':
+                val_to_save = ", ".join(f"*{it}*" for it in items if isinstance(it, str) and it.strip())
+            else:
+                val_to_save = json.dumps(items)
+            if customer_name:
+                cur.execute(f"UPDATE ai_cstmr SET {column_to_update} = %s WHERE AI_CSTMR_START_TXT LIKE %s", (val_to_save, '%' + customer_name + '%'))
+                db_conn.commit()
+            elif cstmr_key:
+                cur.execute(f"UPDATE ai_cstmr SET {column_to_update} = %s WHERE AI_CSTMR_KEY = %s", (val_to_save, cstmr_key))
+                db_conn.commit()
+        except Exception as e:
+            logging.error(f"Error saving scanned items: {e}")
+        finally:
+            if cur:
+                cur.close()
+            if db_conn:
+                db_conn.close()
+
     return {'items': items}
 
 @customers_bp.route('/customer/palate', methods=['GET', 'POST'])
@@ -386,6 +435,8 @@ def show_palate_questionnaire():
     wine_option = request.form.get("wine_option", "1")
     customer_name = request.form.get("customer_name", "")
     wine_name = request.form.get("wine_name", "")
+    scanned_wine_list = request.form.get("scanned_wine_list", "")
+    scanned_dish_list = request.form.get("scanned_dish_list", "")
     db_connection = create_database_connection()
     cursor = db_connection.cursor(dictionary=True, buffered=True)
     try:
@@ -435,6 +486,8 @@ def show_palate_questionnaire():
                                wine_option=wine_option,
                                customer_name=customer_name,
                                wine_name=wine_name,
+                               scanned_wine_list=scanned_wine_list,
+                               scanned_dish_list=scanned_dish_list,
                                logo_path=logo_path,
                                color=theme_color)
     except Exception as e:
@@ -461,7 +514,7 @@ def get_customer_recommendations():
         db_connection = create_database_connection()
         cursor = db_connection.cursor(dictionary=True, buffered=True)
         prompt_column = f"PROMPT_TXT_{wine_option}"
-        query = f"SELECT BEER_IND, RSTRNT_IND, RSTRNT_SCAN_IND, WINE_FOOD_PAIR_TXT, NO_WINE_BEER_IND, {prompt_column} FROM ai_cstmr WHERE AI_CSTMR_START_TXT LIKE %s"
+        query = f"SELECT BEER_IND, RSTRNT_IND, RSTRNT_SCAN_IND, GENERIC_RSTRNT_IND, WINE_FOOD_PAIR_TXT, NO_WINE_BEER_IND, PAIR_WINE_PROMPT_TXT, PAIR_FOOD_PROMPT_TXT, {prompt_column} FROM ai_cstmr WHERE AI_CSTMR_START_TXT LIKE %s"
         cursor.execute(query, ('%' + customer_name + '%',))
         cstmr_result = cursor.fetchone()
         is_beer = False
@@ -495,13 +548,45 @@ def get_customer_recommendations():
         rstrnt_ind = cstmr_result['RSTRNT_IND'] if cstmr_result else 'N'
         no_wine_beer_ind = cstmr_result['NO_WINE_BEER_IND'] if cstmr_result else 'N'
         rstrnt_scan_ind = cstmr_result.get('RSTRNT_SCAN_IND') or 'N' if cstmr_result else 'N'
+        generic_rstrnt_ind = cstmr_result.get('GENERIC_RSTRNT_IND') or 'N' if cstmr_result else 'N'
         wine_name = request.form.get("wine_name", "").strip()
+        scanned_wine_list = request.form.get("scanned_wine_list", "").strip()
+        scanned_dish_list = request.form.get("scanned_dish_list", "").strip()
 
         is_scanned_pairing = False
-        if rstrnt_scan_ind == 'Y' and wine_name:
+        if (rstrnt_scan_ind == 'Y' or generic_rstrnt_ind == 'Y') and wine_name and (scanned_dish_list or user_input):
             is_scanned_pairing = True
-            prompt_template = cstmr_result.get('WINE_FOOD_PAIR_TXT') or ""
+            pair_food_prompt = cstmr_result.get('PAIR_FOOD_PROMPT_TXT') or cstmr_result.get('WINE_FOOD_PAIR_TXT') or ""
+            if not pair_food_prompt:
+                pair_food_prompt = "Task: Analyze the full list of scanned dishes and select the top five dishes that create the most elevated, harmonious pairing experience with the selected wine."
+            dishes_context = f"Selected dish: {user_input}\n" if user_input else ""
+            if scanned_dish_list:
+                dishes_context += f"Scanned dishes:\n{scanned_dish_list}"
+            prompt_result = (
+                f"{pair_food_prompt}\n\n"
+                f"Selected wine: {wine_name}\n"
+                f"{dishes_context}"
+            )
+            if palate_prefix:
+                prompt_result = palate_prefix + " " + prompt_result
+        elif (rstrnt_scan_ind == 'Y' or generic_rstrnt_ind == 'Y') and wine_name:
+            is_scanned_pairing = True
+            prompt_template = cstmr_result.get('WINE_FOOD_PAIR_TXT') or cstmr_result.get('PAIR_FOOD_PROMPT_TXT') or ""
             prompt_result = prompt_template.replace("the entered wine", wine_name).replace("the entered beer", wine_name)
+            if not prompt_template:
+                prompt_result = f"Recommend the best dishes that pair with {wine_name}."
+            if palate_prefix:
+                prompt_result = palate_prefix + " " + prompt_result
+        elif (rstrnt_scan_ind == 'Y' or generic_rstrnt_ind == 'Y') and scanned_wine_list and user_input:
+            pair_prompt = cstmr_result.get('PAIR_WINE_PROMPT_TXT') or "Act as an elite virtual sommelier trained on the expertise and recommendations of world-renowned sommeliers. For the selected dish, select the 5 best wine varietals that create the most harmonious and elevated pairing experience."
+            prompt_result = (
+                f"{pair_prompt}\n\n"
+                f"You must strictly select and describe the top pairing wines exclusively from the following scanned wine list:\n"
+                f"{scanned_wine_list}\n\n"
+                f"Selected dish: {user_input}"
+            )
+            if palate_prefix:
+                prompt_result = palate_prefix + " " + prompt_result
         else:
             prompt_result = str(cstmr_result[prompt_column]) if (cstmr_result and cstmr_result[prompt_column]) else ""
             if palate_prefix:

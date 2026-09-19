@@ -56,6 +56,12 @@
         {% if wine_name %}
         <input type="hidden" name="wine_name" value="{{ wine_name }}">
         {% endif %}
+        {% if scanned_wine_list %}
+        <input type="hidden" name="scanned_wine_list" value="{{ scanned_wine_list }}">
+        {% endif %}
+        {% if scanned_dish_list %}
+        <input type="hidden" name="scanned_dish_list" value="{{ scanned_dish_list }}">
+        {% endif %}
 
         {% for q in questions %}
         <div class="wb-palate-card">
