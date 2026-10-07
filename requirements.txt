@@ -1,8 +1,6 @@
 flask
-bs4
 mysql_connector
 openai
 python-dotenv
 sshtunnel
 paramiko<4.0.0
-streamlit
