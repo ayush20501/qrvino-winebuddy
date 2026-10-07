@@ -28,6 +28,13 @@
             <select class="wb-select" id="wordSlider" name="word_slider">
                 <option value="" disabled selected>{% if rstrnt_scan_ind == 'Y' %}Choose a Dish{% else %}Choose a recipe{% endif %}</option>
             </select>
+            {% if rstrnt_scan_ind == 'Y' or generic_rstrnt_ind == 'Y' %}
+            <div style="text-align: center; margin-top: 14px;">
+                <button type="button" id="btnBackFromFoodDropdown" style="background: transparent; border: none; color: #c9a84c; font-size: 14px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px;">
+                    <i class="fa-solid fa-arrow-left"></i> Back
+                </button>
+            </div>
+            {% endif %}
         </div>
 
         {% if rstrnt_scan_ind == 'Y' %}
@@ -90,6 +97,11 @@
                 {% endif %}
                 <button type="button" id="btnScanWineListChoice" class="wb-btn" style="flex: 1; background-color: #ffd700; color: #000; font-weight: bold; padding: 14px; border-radius: 8px; border: none; font-size: 15px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
                     Scan Wine List to Pair
+                </button>
+            </div>
+            <div style="margin-top: 14px;">
+                <button type="button" id="btnBackFromDishPairingChoice" style="background: transparent; border: none; color: #c9a84c; font-size: 14px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px;">
+                    <i class="fa-solid fa-arrow-left"></i> Back
                 </button>
             </div>
         </div>
@@ -392,6 +404,7 @@
         if (matches_list.length > 0) {
             $('#wordSliderContainer').show();
             inputContainer.hide();
+            dropdown.find('option:not(:first)').remove();
             matches_list.forEach(function (word) {
                 dropdown.append($('<option></option>').text(word).val(word));
             });
@@ -457,7 +470,11 @@
                     $('#introFirstLine').text(originalIntroLine);
                     $('#wineListOptionSelectionContainer').show();
                 } else if (stepName === 'food_dropdown') {
-                    $('#introFirstLine').text(originalIntroLine);
+                    if ($('#wine_name').val()) {
+                        $('#introFirstLine').text('Select a dish to pair with your wine');
+                    } else {
+                        $('#introFirstLine').text(originalIntroLine);
+                    }
                     $('#wordSliderContainer').show();
                 } else if (stepName === 'recognized_items') {
                     $('#recognizedItemsContainer').show();
@@ -505,7 +522,10 @@
 
             $('#btnReadMenu').on('click', function () {
                 currentScanType = 'food';
-                if (saved_menu_items && saved_menu_items.length > 0) {
+                if (matches_list && matches_list.length > 0) {
+                    history.pushState({ step: 'food_dropdown' }, "");
+                    showStep('food_dropdown');
+                } else if (saved_menu_items && saved_menu_items.length > 0) {
                     displayRecognizedItems(saved_menu_items);
                 } else {
                     alert('No menu is currently saved for this restaurant. Please scan the menu first.');
@@ -570,7 +590,10 @@
 
             $('#btnReadMenuToPair').on('click', function () {
                 currentScanType = 'food';
-                if (saved_menu_items && saved_menu_items.length > 0) {
+                if (matches_list && matches_list.length > 0) {
+                    history.pushState({ step: 'food_dropdown' }, "");
+                    showStep('food_dropdown');
+                } else if (saved_menu_items && saved_menu_items.length > 0) {
                     displayRecognizedItems(saved_menu_items);
                 } else {
                     alert('No menu is currently saved for this restaurant. Please scan the menu first.');
@@ -587,14 +610,43 @@
                 showStep('recognized_items');
             });
 
+            $('#btnBackFromFoodDropdown').on('click', function () {
+                $('#wordSlider').val('');
+                if ($('#wine_name').val()) {
+                    history.pushState({ step: 'wine_pairing_choice' }, "");
+                    showStep('wine_pairing_choice');
+                } else {
+                    history.pushState({ step: 'menu_option' }, "");
+                    showStep('menu_option');
+                }
+            });
+
+            $('#btnBackFromDishPairingChoice').on('click', function () {
+                if ($('#wordSlider').val()) {
+                    history.pushState({ step: 'food_dropdown' }, "");
+                    showStep('food_dropdown');
+                } else {
+                    history.pushState({ step: 'recognized_items' }, "");
+                    showStep('recognized_items');
+                }
+            });
+
             $('#wordSlider').on('change', function () {
                 var selectedDish = $(this).val();
                 if (selectedDish) {
-                    isDishToWineFlow = true;
                     $('#user_input').val(selectedDish);
                     sessionStorage.setItem("selectedWord", selectedDish);
-                    history.pushState({ step: 'dish_pairing_choice' }, "");
-                    showStep('dish_pairing_choice');
+                    if ($('#wine_name').val()) {
+                        $('#loaderOverlay').removeClass('wb-hidden');
+                        document.getElementById("loaderMessage").textContent = "Consulting the sommelier...";
+                        setTimeout(function () {
+                            document.getElementById("login_form").submit();
+                        }, 500);
+                    } else {
+                        isDishToWineFlow = true;
+                        history.pushState({ step: 'dish_pairing_choice' }, "");
+                        showStep('dish_pairing_choice');
+                    }
                 }
             });
 

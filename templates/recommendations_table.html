@@ -11,12 +11,6 @@
                     <strong>Disclaimer:</strong> AI recommendations are for informational purposes only. Not professional dietary or medical advice.
                 </p>
             </div>
-            {% if rstrnt_ind != 'Y' and no_wine_beer_ind != 'Y' %}
-            <div class="wb-recommendations-actions">
-                <button type="button" onclick="goToScreen1()" class="wb-btn wb-btn-secondary">Back to wines</button>
-                <button type="button" id="drinkButton" onclick="checkAndNavigate()" class="wb-btn wb-btn-primary">Back to beers</button>
-            </div>
-            {% endif %}
         </div>
         <div class="wb-recommendations-body">
             {% if token == 1 %}
@@ -33,13 +27,6 @@
 {% endblock %}
 {% block scripts %}
 <script>
-    function goToScreen1() {
-        window.location.href = '/explore-wine';
-    }
-    function checkAndNavigate() {
-        window.location.href = '/explore-beer';
-    }
-
     document.querySelectorAll('.wb-recommendations-body table tr').forEach(function(row) {
         var cells = row.querySelectorAll('td');
         if (!cells.length) return;

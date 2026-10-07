@@ -75,7 +75,7 @@ def show_image(slug):
         result = cursor.fetchone()
 
         if result is not None and result['CANA_IND'] == 'Y':
-            query = "SELECT RSTRNT_IND,RSTRNT_SCAN_IND,GENERIC_RSTRNT_IND,MEAT_CUT_IND,PRIME_IND,AI_CSTMR_KEY,LOGO_PATH, CHTBX_FRST_LINE, CHTBX_SCND_LINE, SCND_MENU, SCND_WINE, OPTION_1_TXT, OPTION_2_TXT, OPTION_3_TXT, OPTION_4_TXT, OPTION_5_TXT, OPTION_6_TXT, OPTION_7_TXT, OPTION_8_TXT, OPTION_9_TXT, OPTION_10_TXT FROM ai_cstmr WHERE AI_CSTMR_START_TXT LIKE %s"
+            query = "SELECT RSTRNT_IND,RSTRNT_SCAN_IND,GENERIC_RSTRNT_IND,MEAT_CUT_IND,PRIME_IND,AI_CSTMR_KEY,LOGO_PATH, CHTBX_FRST_LINE, CHTBX_SCND_LINE, WINE_FOOD_PAIR_TXT, SCND_MENU, SCND_WINE, OPTION_1_TXT, OPTION_2_TXT, OPTION_3_TXT, OPTION_4_TXT, OPTION_5_TXT, OPTION_6_TXT, OPTION_7_TXT, OPTION_8_TXT, OPTION_9_TXT, OPTION_10_TXT FROM ai_cstmr WHERE AI_CSTMR_START_TXT LIKE %s"
             cursor.execute(query,('%' + page_name + '%',))
             result = cursor.fetchone()
             if result is not None:
@@ -99,15 +99,28 @@ def show_image(slug):
                     if opt and opt != 'null' and opt != '':
                         options_list.append({'id': i, 'text': opt})
 
+                matches_list = []
+                intro_text = ""
+                if second_line_from_database:
+                    intro_text_match = re.match(r'([^*]+):', second_line_from_database)
+                    intro_text = intro_text_match.group(1)+":" if intro_text_match else ""
+
+                parsed_matches = [d.strip() for d in re.findall(r'\*([^\*]+)\*', result.get('WINE_FOOD_PAIR_TXT') or '') if d.strip()]
+                if not parsed_matches:
+                    parsed_matches = [d.strip() for d in re.findall(r'\*([^\*]+)\*', second_line_from_database or '') if d.strip()]
+                if not parsed_matches and saved_menu_items:
+                    parsed_matches = [d.strip() for d in saved_menu_items if isinstance(d, str) and d.strip()]
+                matches_list = sorted(list(dict.fromkeys(parsed_matches)))
+
                 if meat_cut_ind == 'Y' and second_line_from_database:
                     second_line_from_database = re.sub(r'\*([^\*]+)\*', make_clickable, second_line_from_database)
                 session['theme_color'] = 'Y'
-                return render_template('customer_chat.html', logo_path=logo_path, first_line=first_line, second_line=second_line_from_database,customer_name=page_name, color = "Y", options = options_list, rstrnt_ind=rstrnt_ind, rstrnt_scan_ind=rstrnt_scan_ind, generic_rstrnt_ind=generic_rstrnt_ind, saved_menu_items=saved_menu_items, saved_wine_items=saved_wine_items, prime_ind=prime_ind)
+                return render_template('customer_chat.html', intro_text=intro_text, matches_list=matches_list, logo_path=logo_path, first_line=first_line, second_line=second_line_from_database,customer_name=page_name, color = "Y", options = options_list, rstrnt_ind=rstrnt_ind, rstrnt_scan_ind=rstrnt_scan_ind, generic_rstrnt_ind=generic_rstrnt_ind, saved_menu_items=saved_menu_items, saved_wine_items=saved_wine_items, prime_ind=prime_ind)
             else:
                 return {'page_name': page_name}
 
         elif result is not None and result['BEER_IND'] == 'Y':
-            query = "SELECT RSTRNT_IND,RSTRNT_SCAN_IND,GENERIC_RSTRNT_IND,MEAT_CUT_IND,PRIME_IND,AI_CSTMR_KEY,LOGO_PATH, CHTBX_FRST_LINE, CHTBX_SCND_LINE, SCND_MENU, SCND_WINE, OPTION_1_TXT, OPTION_2_TXT, OPTION_3_TXT, OPTION_4_TXT, OPTION_5_TXT, OPTION_6_TXT, OPTION_7_TXT, OPTION_8_TXT, OPTION_9_TXT, OPTION_10_TXT FROM ai_cstmr WHERE AI_CSTMR_START_TXT LIKE %s"
+            query = "SELECT RSTRNT_IND,RSTRNT_SCAN_IND,GENERIC_RSTRNT_IND,MEAT_CUT_IND,PRIME_IND,AI_CSTMR_KEY,LOGO_PATH, CHTBX_FRST_LINE, CHTBX_SCND_LINE, WINE_FOOD_PAIR_TXT, SCND_MENU, SCND_WINE, OPTION_1_TXT, OPTION_2_TXT, OPTION_3_TXT, OPTION_4_TXT, OPTION_5_TXT, OPTION_6_TXT, OPTION_7_TXT, OPTION_8_TXT, OPTION_9_TXT, OPTION_10_TXT FROM ai_cstmr WHERE AI_CSTMR_START_TXT LIKE %s"
             cursor.execute(query,('%' + page_name + '%',))
             result = cursor.fetchone()
 
@@ -134,18 +147,23 @@ def show_image(slug):
 
                 matches_list = []
                 intro_text = ""
-                if meat_cut_ind == 'Y' and second_line_from_database:
+                if second_line_from_database:
                     intro_text_match = re.match(r'([^*]+):', second_line_from_database)
                     intro_text = intro_text_match.group(1)+":" if intro_text_match else ""
-                    matches_list = re.findall(r'\*([^\*]+)\*', second_line_from_database)
 
-                matches_list = sorted(matches_list)
+                parsed_matches = [d.strip() for d in re.findall(r'\*([^\*]+)\*', result.get('WINE_FOOD_PAIR_TXT') or '') if d.strip()]
+                if not parsed_matches:
+                    parsed_matches = [d.strip() for d in re.findall(r'\*([^\*]+)\*', second_line_from_database or '') if d.strip()]
+                if not parsed_matches and saved_menu_items:
+                    parsed_matches = [d.strip() for d in saved_menu_items if isinstance(d, str) and d.strip()]
+                matches_list = sorted(list(dict.fromkeys(parsed_matches)))
+
                 session['theme_color'] = 'G'
                 return render_template('customer_chat.html',intro_text=intro_text, matches_list = matches_list,logo_path=logo_path, first_line=first_line, second_line=second_line_from_database,customer_name=page_name, color = "G", options = options_list, rstrnt_ind=rstrnt_ind, rstrnt_scan_ind=rstrnt_scan_ind, generic_rstrnt_ind=generic_rstrnt_ind, saved_menu_items=saved_menu_items, saved_wine_items=saved_wine_items, prime_ind=prime_ind)
             else:
                 return {'page_name': page_name}
         else:
-            query = "SELECT RSTRNT_IND,RSTRNT_SCAN_IND,GENERIC_RSTRNT_IND,MEAT_CUT_IND,PRIME_IND,AI_CSTMR_KEY,LOGO_PATH, CHTBX_FRST_LINE, CHTBX_SCND_LINE, SCND_MENU, SCND_WINE, OPTION_1_TXT, OPTION_2_TXT, OPTION_3_TXT, OPTION_4_TXT, OPTION_5_TXT, OPTION_6_TXT, OPTION_7_TXT, OPTION_8_TXT, OPTION_9_TXT, OPTION_10_TXT FROM ai_cstmr WHERE AI_CSTMR_START_TXT LIKE %s"
+            query = "SELECT RSTRNT_IND,RSTRNT_SCAN_IND,GENERIC_RSTRNT_IND,MEAT_CUT_IND,PRIME_IND,AI_CSTMR_KEY,LOGO_PATH, CHTBX_FRST_LINE, CHTBX_SCND_LINE, WINE_FOOD_PAIR_TXT, SCND_MENU, SCND_WINE, OPTION_1_TXT, OPTION_2_TXT, OPTION_3_TXT, OPTION_4_TXT, OPTION_5_TXT, OPTION_6_TXT, OPTION_7_TXT, OPTION_8_TXT, OPTION_9_TXT, OPTION_10_TXT FROM ai_cstmr WHERE AI_CSTMR_START_TXT LIKE %s"
             cursor.execute(query,('%' + page_name + '%',))
             result = cursor.fetchone()
             if result is not None:
@@ -169,10 +187,11 @@ def show_image(slug):
                     if opt and opt != 'null' and opt != '':
                         options_list.append({'id': i, 'text': opt})
 
+                wine_food_pair_txt = result.get('WINE_FOOD_PAIR_TXT')
                 query = "SELECT CSTMR_WINE_URL FROM CSTMR_WIN_SELR WHERE AI_CSTMR_KEY = %s"
                 cursor.execute(query, (ai_cstmr_key,))
-                result = cursor.fetchone()
-                image_url = result['CSTMR_WINE_URL'] if result else False
+                wine_selr_res = cursor.fetchone()
+                image_url = wine_selr_res['CSTMR_WINE_URL'] if wine_selr_res else False
 
                 if image_url == '' or image_url == 'null':
                     image_url = False
@@ -180,11 +199,17 @@ def show_image(slug):
                 matches_list = []
                 intro_text = ""
 
-                if meat_cut_ind == 'Y' and second_line_from_database:
+                if second_line_from_database:
                     intro_text_match = re.match(r'([^*]+):', second_line_from_database)
                     intro_text = intro_text_match.group(1)+":" if intro_text_match else ""
-                    matches_list = re.findall(r'\*([^\*]+)\*', second_line_from_database)
-                matches_list = sorted(matches_list)
+
+                parsed_matches = [d.strip() for d in re.findall(r'\*([^\*]+)\*', wine_food_pair_txt or '') if d.strip()]
+                if not parsed_matches:
+                    parsed_matches = [d.strip() for d in re.findall(r'\*([^\*]+)\*', second_line_from_database or '') if d.strip()]
+                if not parsed_matches and saved_menu_items:
+                    parsed_matches = [d.strip() for d in saved_menu_items if isinstance(d, str) and d.strip()]
+                matches_list = sorted(list(dict.fromkeys(parsed_matches)))
+
                 session['theme_color'] = 'N'
                 return render_template('customer_chat.html',intro_text=intro_text, matches_list = matches_list, ai_cstmr_key = ai_cstmr_key, logo_path=logo_path, image_url = image_url,
                 first_line=first_line, second_line=second_line_from_database,customer_name=page_name, color = "N", options = options_list, rstrnt_ind=rstrnt_ind, rstrnt_scan_ind=rstrnt_scan_ind, generic_rstrnt_ind=generic_rstrnt_ind, saved_menu_items=saved_menu_items, saved_wine_items=saved_wine_items, prime_ind=prime_ind)
